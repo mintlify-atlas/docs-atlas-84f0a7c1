@@ -1,0 +1,125 @@
+---
+title: Introduction
+description: Learn about Villa Buena E-Commerce - a modern React-based e-commerce platform built with Vite, Auth0, and TanStack Query
+---
+
+# Welcome to Villa Buena E-Commerce
+
+Villa Buena E-Commerce is a modern, full-featured e-commerce platform built with React 19 and powered by Vite for lightning-fast development. It provides a complete shopping experience with authentication, cart management, checkout flow, and order tracking.
+
+## What is Villa Buena E-Commerce?
+
+Villa Buena is a production-ready e-commerce application that demonstrates best practices in modern web development. It combines cutting-edge technologies to deliver a seamless shopping experience with features like real-time cart updates, secure authentication, and a responsive design.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock">
+    Secure user authentication powered by Auth0 with social login support and session persistence
+  </Card>
+  <Card title="Cart Management" icon="shopping-cart">
+    Real-time cart updates with Zustand state management and localStorage persistence
+  </Card>
+  <Card title="Product Catalog" icon="grid">
+    Browse products with advanced filtering, search, and sorting capabilities
+  </Card>
+  <Card title="Checkout Flow" icon="credit-card">
+    Complete checkout process with shipping and payment steps
+  </Card>
+  <Card title="Order History" icon="list">
+    Track past orders and view order details through your account dashboard
+  </Card>
+  <Card title="Dark Mode" icon="moon">
+    Toggle between light and dark themes with persistent user preferences
+  </Card>
+</CardGroup>
+
+## Tech Stack
+
+Villa Buena is built on a modern technology stack:
+
+- **React 19.2.0** - Latest React with improved performance and features
+- **Vite 7.3.1** - Next-generation frontend tooling with instant HMR
+- **Auth0** - Enterprise-grade authentication and authorization
+- **TanStack Query** - Powerful data synchronization and caching
+- **Zustand** - Lightweight state management with minimal boilerplate
+- **React Router 7** - Client-side routing with nested layouts
+- **Bootstrap 5.3** - Responsive UI components and utilities
+- **Axios** - Promise-based HTTP client for API requests
+- **Lucide React** - Beautiful and consistent icon library
+
+## Architecture
+
+The application follows a clean architecture pattern:
+
+```
+src/
+├── app/              # Application core (routing, providers, layout)
+├── components/       # Reusable UI components
+├── pages/           # Route-based page components
+├── services/        # API service layer
+├── store/           # Zustand state stores
+└── hooks/           # Custom React hooks
+```
+
+<Note>
+Villa Buena uses a service-based architecture to separate business logic from presentation, making the codebase maintainable and testable.
+</Note>
+
+## Core Concepts
+
+### State Management
+
+The application uses **Zustand** for global state management with middleware support:
+
+- **Cart Store** - Manages shopping cart with persistence
+- **User Store** - Handles user profile data
+- **UI Store** - Controls UI state like dark mode and notifications
+
+### Data Fetching
+
+**TanStack Query** handles all server state management, providing:
+
+- Automatic caching and background refetching
+- Loading and error states
+- Optimistic updates
+- Request deduplication
+
+### Authentication Flow
+
+Auth0 provides secure authentication with:
+
+- OAuth 2.0 / OpenID Connect
+- Social login providers
+- Secure token storage in localStorage
+- Automatic redirect handling
+
+## Application Routes
+
+Villa Buena includes the following routes:
+
+| Route | Description |
+|-------|-------------|
+| `/` | Home page with product catalog |
+| `/product/:id` | Product detail page |
+| `/cart` | Shopping cart view |
+| `/checkout/shipping` | Shipping information step |
+| `/checkout/payment` | Payment information step |
+| `/payment/success` | Order confirmation page |
+| `/account` | User account dashboard |
+| `/orders` | Order history |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get Villa Buena running in 5 minutes
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation and configuration guide
+  </Card>
+</CardGroup>
+
+<Tip>
+Ready to build your own e-commerce platform? Start with the [Quick Start](/quickstart) guide to get up and running quickly.
+</Tip>

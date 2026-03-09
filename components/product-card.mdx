@@ -1,0 +1,163 @@
+---
+title: 'ProductCard'
+description: 'Display product information with add to cart functionality'
+icon: 'rectangle-ad'
+---
+
+## Overview
+
+The `ProductCard` component displays individual product information in a card layout with thumbnail, title, price, and action buttons. It integrates with the cart store to add products and shows toast notifications on successful additions.
+
+## Props
+
+<ParamField path="product" type="object" required>
+  The product object to display
+  
+  <ParamField path="product.id" type="string | number" required>
+    Unique identifier for the product
+  </ParamField>
+  
+  <ParamField path="product.title" type="string" required>
+    Product name/title
+  </ParamField>
+  
+  <ParamField path="product.price" type="number" required>
+    Product price
+  </ParamField>
+  
+  <ParamField path="product.thumbnail" type="string" required>
+    URL to the product thumbnail image
+  </ParamField>
+</ParamField>
+
+## Usage
+
+<CodeGroup>
+```jsx Basic Usage
+import ProductCard from "../components/productCard/ProductCard";
+
+function ProductList({ products }) {
+  return (
+    <div className="row g-4">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
+}
+```
+
+```jsx With Product Data
+// Example from Home.jsx
+import ProductCard from "../components/productCard/ProductCard";
+
+const paginatedProducts = [
+  {
+    id: 1,
+    title: "Wireless Headphones",
+    price: 79.99,
+    thumbnail: "https://example.com/image.jpg"
+  },
+  // ... more products
+];
+
+<div className="row g-4">
+  {paginatedProducts.map((product) => (
+    <ProductCard key={product.id} product={product} />
+  ))}
+</div>
+```
+</CodeGroup>
+
+## Features
+
+### Add to Cart Integration
+
+The component uses Zustand stores for state management:
+- `useCartStore` - Manages cart state and add to cart functionality
+- `useUIStore` - Shows toast notifications when items are added
+
+```jsx src/components/productCard/ProductCard.jsx:8-19
+const addToCart = useCartStore((state) => state.addToCart);
+const showToast = useUIStore((state) => state.showToast);
+
+const handleAddToCart = () => {
+  addToCart({
+    id: product.id,
+    title: product.title,
+    price: product.price,
+    thumbnail: product.thumbnail,
+  });
+
+  showToast("Added to cart");
+};
+```
+
+### Product Navigation
+
+Each card includes a "View" button that links to the product detail page:
+
+```jsx
+<Link to={`/product/${product.id}`} className="btn-secondary-custom">
+  View
+</Link>
+```
+
+### Responsive Layout
+
+The component uses Bootstrap grid classes for responsive layouts:
+- `col-md-4` - 3 cards per row on medium screens
+- `col-lg-3` - 4 cards per row on large screens
+- `mb-4` - Bottom margin for spacing
+
+<Note>
+The card automatically fills its container height with the `h-100` class for consistent alignment in grid layouts.
+</Note>
+
+## Styling
+
+The component uses custom CSS classes from `ProductCard.css`:
+
+- `.product-card` - Main card container
+- `.product-card-image` - Product thumbnail styling
+- `.product-card-title` - Product title with truncation
+- `.product-card-price` - Price formatting
+- `.product-card-actions` - Button container layout
+
+## Real-World Example
+
+```jsx pages/Home.jsx
+import ProductCard from "../components/productCard/ProductCard";
+import { useProducts } from "../hooks/useProducts";
+
+export const Home = () => {
+  const { data: productsData, isLoading } = useProducts();
+  const limit = 12;
+  
+  // Process and paginate products
+  const paginatedProducts = processedProducts.slice(
+    (page - 1) * limit,
+    page * limit
+  );
+
+  return (
+    <div className="container py-5">
+      <div className="row g-4">
+        {isLoading ? (
+          Array.from({ length: limit }).map((_, index) => (
+            <SkeletonCard key={index} />
+          ))
+        ) : (
+          paginatedProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+<Tip>
+Always provide a unique `key` prop when rendering multiple ProductCard components in a list to optimize React's reconciliation.
+</Tip>

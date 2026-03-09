@@ -1,0 +1,182 @@
+---
+title: 'useCategories'
+description: 'React Query hook for fetching product categories'
+icon: 'tags'
+---
+
+## Overview
+
+The `useCategories` hook is a React Query wrapper that fetches all available product categories from the API. It provides category data for filtering and navigation.
+
+**Source:** `src/hooks/useCategories.js:4`
+
+## Function Signature
+
+```javascript
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: categoryService.getAll,
+  });
+};
+```
+
+## Parameters
+
+This hook takes no parameters.
+
+## Return Value
+
+Returns a [React Query](https://tanstack.com/query/latest) result object:
+
+<ResponseField name="data" type="array">
+  Array of category objects. Each category contains:
+  
+  <ResponseField name="slug" type="string">
+    Unique identifier for the category (e.g., `"electronics"`, `"clothing"`)
+  </ResponseField>
+  
+  <ResponseField name="name" type="string">
+    Display name of the category
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  `true` when the initial data is being fetched
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  `true` if an error occurred during fetching
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the request failed
+</ResponseField>
+
+## Usage Example
+
+<CodeGroup>
+
+```jsx Home Page
+import { useCategories } from "../hooks/useCategories";
+import Filters from "../components/filters/Filters";
+
+export const Home = () => {
+  const { data: categories = [] } = useCategories();
+
+  return (
+    <div className="container py-5">
+      <h2 className="mb-4">Store</h2>
+      
+      <Filters
+        categories={categories}
+        // ... other props
+      />
+    </div>
+  );
+};
+```
+
+```jsx Category Filter
+import { useCategories } from "../hooks/useCategories";
+
+const CategoryFilter = ({ selectedCategory, onCategoryChange }) => {
+  const { data: categories = [], isLoading } = useCategories();
+
+  if (isLoading) {
+    return <div>Loading categories...</div>;
+  }
+
+  return (
+    <div className="category-buttons">
+      <button
+        className={!selectedCategory ? "active" : ""}
+        onClick={() => onCategoryChange("")}
+      >
+        All
+      </button>
+
+      {categories.map((cat) => (
+        <button
+          key={cat.slug}
+          className={selectedCategory === cat.slug ? "active" : ""}
+          onClick={() => onCategoryChange(cat.slug)}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </div>
+  );
+};
+```
+
+```jsx Navigation Menu
+import { useCategories } from "../hooks/useCategories";
+import { Link } from "react-router-dom";
+
+const CategoryNav = () => {
+  const { data: categories = [] } = useCategories();
+
+  return (
+    <nav>
+      {categories.map((category) => (
+        <Link
+          key={category.slug}
+          to={`/?category=${category.slug}`}
+        >
+          {category.name}
+        </Link>
+      ))}
+    </nav>
+  );
+};
+```
+
+</CodeGroup>
+
+## Default Value Pattern
+
+<Note>
+  Notice the destructuring pattern `{ data: categories = [] }` - this provides an empty array as the default value when data is still loading or undefined, preventing runtime errors when mapping over categories.
+</Note>
+
+```javascript
+// Recommended pattern
+const { data: categories = [] } = useCategories();
+
+// Now safe to use immediately
+categories.map(cat => ...)
+```
+
+## API Service
+
+The hook uses `categoryService.getAll()` which fetches categories from the API endpoint.
+
+**Source:** `src/services/categoryService.js`
+
+## Caching
+
+<Note>
+  Categories are cached with the query key `["categories"]`. Since categories rarely change, this data is efficiently shared across all components that need it.
+</Note>
+
+## Real-World Example
+
+From the Filters component (`src/components/filters/Filters.jsx:112`):
+
+```jsx
+{categories.map((cat) => (
+  <button
+    key={cat.slug}
+    className={`filters-category-chip ${category === cat.slug ? "active" : ""}`}
+    onClick={() => handleCategoryChange(cat.slug)}
+  >
+    {cat.name}
+  </button>
+))}
+```
+
+## Related Hooks
+
+- [useProducts](/hooks/use-products) - Fetch all products
+- [useProductsByCategory](/hooks/use-products#useproductsbycategory) - Fetch products filtered by category

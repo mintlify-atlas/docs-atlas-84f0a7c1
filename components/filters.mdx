@@ -1,0 +1,269 @@
+---
+title: 'Filters'
+description: 'Product search, category filtering, and sorting controls'
+icon: 'filter'
+---
+
+## Overview
+
+The `Filters` component provides search, category filtering, and sorting functionality for product listings. It uses URL search parameters to maintain filter state and includes debounced search for performance.
+
+## Props
+
+<ParamField path="category" type="string" required>
+  Currently selected category slug (empty string for all)
+</ParamField>
+
+<ParamField path="categories" type="array" required>
+  Array of category objects to display as filter chips
+  
+  <ParamField path="categories[].slug" type="string" required>
+    Unique category identifier
+  </ParamField>
+  
+  <ParamField path="categories[].name" type="string" required>
+    Display name for the category
+  </ParamField>
+</ParamField>
+
+<ParamField path="searchParam" type="string" required>
+  Current search query from URL parameters
+</ParamField>
+
+<ParamField path="sort" type="string" required>
+  Current sort option (e.g., "price-asc", "price-desc", or empty)
+</ParamField>
+
+<ParamField path="setSearchParams" type="function" required>
+  Function from `useSearchParams()` to update URL parameters
+</ParamField>
+
+## Usage
+
+<CodeGroup>
+```jsx Basic Implementation
+import { useSearchParams } from "react-router-dom";
+import Filters from "../components/filters/Filters";
+import { useCategories } from "../hooks/useCategories";
+
+function ProductsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: categories = [] } = useCategories();
+  
+  const category = searchParams.get("category") || "";
+  const searchParam = searchParams.get("search") || "";
+  const sort = searchParams.get("sort") || "";
+  
+  return (
+    <Filters
+      category={category}
+      categories={categories}
+      searchParam={searchParam}
+      sort={sort}
+      setSearchParams={setSearchParams}
+    />
+  );
+}
+```
+
+```jsx Complete Example from Home.jsx
+import { useSearchParams } from "react-router-dom";
+import Filters from "../components/filters/Filters";
+import { useCategories } from "../hooks/useCategories";
+
+export const Home = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: categories = [] } = useCategories();
+  
+  const category = searchParams.get("category") || "";
+  const searchParam = searchParams.get("search") || "";
+  const sort = searchParams.get("sort") || "";
+
+  return (
+    <div className="container py-5">
+      <h2 className="mb-4">Store</h2>
+      
+      <Filters
+        category={category}
+        categories={categories}
+        searchParam={searchParam}
+        sort={sort}
+        setSearchParams={setSearchParams}
+      />
+      
+      {/* Product grid */}
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Features
+
+### Debounced Search
+
+The search input uses a custom debounce hook to prevent excessive URL updates:
+
+```jsx src/components/filters/Filters.jsx:12-13
+const [searchInput, setSearchInput] = useState(searchParam);
+const debouncedSearch = useDebounce(searchInput, 500);
+```
+
+This delays URL updates by 500ms after the user stops typing, improving performance.
+
+### Category Filtering
+
+Categories are displayed as clickable chips with active state:
+
+```jsx src/components/filters/Filters.jsx:104-121
+<div className="mb-4 d-flex gap-2 flex-wrap">
+  <button
+    className={`filters-category-chip ${!category ? "active" : ""}`}
+    onClick={() => handleCategoryChange("")}
+  >
+    All
+  </button>
+
+  {categories.map((cat) => (
+    <button
+      key={cat.slug}
+      className={`filters-category-chip ${category === cat.slug ? "active" : ""}`}
+      onClick={() => handleCategoryChange(cat.slug)}
+    >
+      {cat.name}
+    </button>
+  ))}
+</div>
+```
+
+### Sort Options
+
+A dropdown provides sorting options:
+
+```jsx src/components/filters/Filters.jsx:91-100
+<select
+  className="form-select filters-sort-select"
+  value={sort}
+  onChange={handleSortChange}
+>
+  <option value="">Sort By</option>
+  <option value="price-asc">Price: Low → High</option>
+  <option value="price-desc">Price: High → Low</option>
+</select>
+```
+
+### URL Parameter Management
+
+The component automatically syncs filters with URL parameters:
+
+```jsx src/components/filters/Filters.jsx:15-34
+useEffect(() => {
+  setSearchParams((prevParams) => {
+    const params = new URLSearchParams(prevParams);
+
+    if (category) params.set("category", category);
+    else params.delete("category");
+
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    else params.delete("search");
+
+    if (sort) params.set("sort", sort);
+    else params.delete("sort");
+
+    if (!params.has("page")) {
+      params.set("page", "1");
+    }
+
+    return params;
+  });
+}, [debouncedSearch, category, sort, setSearchParams]);
+```
+
+<Note>
+Changing filters automatically resets pagination to page 1 to ensure users see the filtered results from the beginning.
+</Note>
+
+## Layout Structure
+
+The component renders two main sections:
+
+### 1. Search & Sort Row
+```jsx
+<div className="row mb-4">
+  <div className="col-md-8 mb-2">
+    <input
+      type="text"
+      className="form-control filters-search-input"
+      placeholder="Search products..."
+      value={searchInput}
+      onChange={(e) => setSearchInput(e.target.value)}
+    />
+  </div>
+
+  <div className="col-md-4">
+    <select className="form-select filters-sort-select">
+      {/* Sort options */}
+    </select>
+  </div>
+</div>
+```
+
+### 2. Category Chips
+```jsx
+<div className="mb-4 d-flex gap-2 flex-wrap">
+  {/* Category buttons */}
+</div>
+```
+
+## Styling
+
+The component uses these CSS classes from `Filters.css`:
+
+- `.filters-search-input` - Search input field styling
+- `.filters-sort-select` - Sort dropdown styling
+- `.filters-category-chip` - Category button base styles
+- `.filters-category-chip.active` - Active category highlight
+
+## Integration Example
+
+Here's how filters work with product listing logic:
+
+```jsx pages/Home.jsx
+const processedProducts = useMemo(() => {
+  const products = productsData?.products || [];
+  let filtered = [...products];
+
+  // Apply category filter
+  if (category) {
+    filtered = filtered.filter((p) => p.category === category);
+  }
+
+  // Apply search filter
+  if (searchParam) {
+    filtered = filtered.filter((p) =>
+      p.title.toLowerCase().includes(searchParam.toLowerCase())
+    );
+  }
+
+  // Apply sorting
+  if (sort === "price-asc") {
+    filtered.sort((a, b) => a.price - b.price);
+  }
+  if (sort === "price-desc") {
+    filtered.sort((a, b) => b.price - a.price);
+  }
+
+  return filtered;
+}, [productsData, category, searchParam, sort]);
+```
+
+<Tip>
+Use `useMemo` to optimize filter processing and prevent unnecessary recalculations on every render.
+</Tip>
+
+## Best Practices
+
+1. **Always debounce search inputs** to avoid performance issues with frequent URL updates
+2. **Reset pagination** when filters change to show results from the start
+3. **Use URL parameters** to make filter state shareable and bookmarkable
+4. **Provide an "All" option** to clear category filters easily

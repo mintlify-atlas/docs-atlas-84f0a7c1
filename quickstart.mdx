@@ -1,80 +1,285 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get Villa Buena E-Commerce up and running in 5 minutes
 ---
 
-## Get started in three steps
+# Quick Start
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+Get Villa Buena E-Commerce running on your local machine in just a few minutes. This guide will take you from zero to a fully functional e-commerce application.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+Before you begin, make sure you have **Node.js 18+** and **npm** (or yarn/pnpm) installed on your machine.
 </Note>
+
+## Step-by-Step Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Villa Buena source code to your local machine:
+
+    ```bash
+    git clone <repository-url>
+    cd villa-buena-ecommerce
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required packages using your preferred package manager:
+
+    <CodeGroup>
+      ```bash npm
+      npm install
+      ```
+
+      ```bash yarn
+      yarn install
+      ```
+
+      ```bash pnpm
+      pnpm install
+      ```
+    </CodeGroup>
+
+    This will install all dependencies including:
+    - React 19.2.0 and React DOM
+    - Vite 7.3.1 build tooling
+    - Auth0 authentication library
+    - TanStack Query for data fetching
+    - Zustand for state management
+    - Bootstrap 5.3.8 for UI components
+    - And more...
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the root directory and add your API endpoint:
+
+    ```bash
+    VITE_API_URL=https://dummyjson.com
+    ```
+
+    <Info>
+    The application uses `import.meta.env.VITE_API_URL` in the API service layer (see `src/services/api.js:4`).
+    </Info>
+
+    <Warning>
+    All environment variables must be prefixed with `VITE_` to be accessible in your application code.
+    </Warning>
+  </Step>
+
+  <Step title="Configure Auth0 (Optional)">
+    The application comes pre-configured with a demo Auth0 setup. For production use, you should configure your own Auth0 application:
+
+    1. Create a free account at [auth0.com](https://auth0.com)
+    2. Create a new Single Page Application
+    3. Update the Auth0 configuration in `src/main.jsx`:
+
+    ```jsx src/main.jsx
+    <Auth0Provider
+      domain="YOUR_AUTH0_DOMAIN"
+      clientId="YOUR_CLIENT_ID"
+      authorizationParams={{ redirect_uri: window.location.origin }}
+      onRedirectCallback={onRedirectCallback}
+      cacheLocation="localstorage"
+    >
+      <RouterProvider router={router} />
+    </Auth0Provider>
+    ```
+
+    <Tip>
+    For quick testing, you can use the pre-configured demo credentials. Just skip this step to use the defaults.
+    </Tip>
+  </Step>
+
+  <Step title="Start the Development Server">
+    Launch the Vite development server:
+
+    <CodeGroup>
+      ```bash npm
+      npm run dev
+      ```
+
+      ```bash yarn
+      yarn dev
+      ```
+
+      ```bash pnpm
+      pnpm dev
+      ```
+    </CodeGroup>
+
+    The application will start and be available at `http://localhost:5173` (default Vite port).
+
+    You should see output similar to:
+
+    ```
+    VITE v7.3.1  ready in 324 ms
+
+    ➜  Local:   http://localhost:5173/
+    ➜  Network: use --host to expose
+    ```
+  </Step>
+
+  <Step title="Verify Installation">
+    Open your browser and navigate to `http://localhost:5173`. You should see:
+
+    - The home page with a product catalog
+    - A navigation bar with authentication options
+    - Product filtering and search functionality
+    - A shopping cart icon
+
+    <Info>
+    The application fetches products from the configured API endpoint. Make sure your `VITE_API_URL` is set correctly.
+    </Info>
+  </Step>
+</Steps>
+
+## Test the Application
+
+Now that Villa Buena is running, try these features:
+
+### Browse Products
+
+The home page displays a paginated product catalog with:
+- Category filtering
+- Search functionality
+- Price sorting (ascending/descending)
+- Pagination (12 products per page)
+
+### Add to Cart
+
+1. Click on any product to view details
+2. Click "Add to Cart" button
+3. See the cart icon update with item count
+4. Open the cart drawer to review items
+
+<Note>
+Cart data persists in localStorage thanks to Zustand's persist middleware (see `src/store/useCartStore.js:62-64`).
+</Note>
+
+### Authentication
+
+1. Click the login button in the navigation bar
+2. Sign in using the Auth0 login flow
+3. Access protected features like account and order history
+
+### Checkout Flow
+
+1. Add products to cart
+2. Navigate to cart
+3. Proceed through shipping (`/checkout/shipping`)
+4. Complete payment information (`/checkout/payment`)
+5. See order confirmation (`/payment/success`)
+
+## What's Running?
+
+When you start the development server, several key systems initialize:
+
+### Application Providers
+
+The app is wrapped with multiple providers in `src/main.jsx`:
+
+```jsx
+<QueryProvider>           {/* TanStack Query client */}
+  <Auth0Provider>         {/* Authentication context */}
+    <RouterProvider />     {/* React Router navigation */}
+  </Auth0Provider>
+</QueryProvider>
+```
+
+### Layout System
+
+Every page uses the `Layout` component (`src/app/Layout.jsx`) which includes:
+- **Navbar** - Navigation and authentication controls
+- **Toast** - Global notification system
+- **CartDrawer** - Slide-out cart panel
+- **Outlet** - Renders the current route component
+
+### State Stores
+
+Three Zustand stores are initialized:
+- **useCartStore** - Shopping cart state with persistence
+- **useUserStore** - User profile data
+- **useUIStore** - UI preferences (dark mode, notifications)
+
+## Common Development Commands
+
+<CodeGroup>
+  ```bash Build for Production
+  npm run build
+  ```
+
+  ```bash Preview Production Build
+  npm run preview
+  ```
+
+  ```bash Lint Code
+  npm run lint
+  ```
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port already in use">
+    If port 5173 is already in use, Vite will automatically try the next available port (5174, 5175, etc.).
+    
+    To specify a custom port, update `vite.config.js`:
+    
+    ```js
+    export default defineConfig({
+      plugins: [react()],
+      server: {
+        port: 3000
+      }
+    })
+    ```
+  </Accordion>
+
+  <Accordion title="API requests failing">
+    Make sure your `.env` file contains the correct API URL:
+    
+    ```bash
+    VITE_API_URL=https://dummyjson.com
+    ```
+    
+    After changing environment variables, restart the dev server.
+  </Accordion>
+
+  <Accordion title="Auth0 redirect loop">
+    If you're experiencing redirect loops:
+    
+    1. Clear localStorage: `localStorage.clear()` in browser console
+    2. Verify your Auth0 application settings
+    3. Check that the redirect URI matches your app URL
+  </Accordion>
+
+  <Accordion title="Module not found errors">
+    Delete `node_modules` and reinstall:
+    
+    ```bash
+    rm -rf node_modules
+    npm install
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation Guide" icon="book" href="/installation">
+    Deep dive into installation and configuration options
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture/overview">
+    Learn about the application structure and design patterns
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/product-service">
+    Explore the API services and data models
+  </Card>
+  <Card title="Building" icon="hammer" href="/development/building">
+    Build and deploy Villa Buena to production
+  </Card>
+</CardGroup>
+
+<Tip>
+Now that you have Villa Buena running, explore the codebase starting with `src/main.jsx` to understand how everything connects together.
+</Tip>

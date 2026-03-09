@@ -1,97 +1,151 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Villa Buena E-Commerce"
+description: "A modern React-based e-commerce platform with shopping cart, checkout, and user account management"
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #19160b 0%, #3B3B37 50%, #7c6c34 100%)',
+  padding: '4rem 2rem',
+  borderRadius: '20px',
+  marginBottom: '3rem',
+  color: '#FFFFFF'
+}}>
+  <h1 style={{
+    fontSize: '48px',
+    fontWeight: '700',
+    marginBottom: '1rem',
+    color: '#f1d262'
+  }}>
+    Villa Buena E-Commerce
+  </h1>
+  <p style={{
+    fontSize: '20px',
+    marginBottom: '2rem',
+    color: '#FFFFFF'
+  }}>
+    Build modern shopping experiences with our feature-rich e-commerce platform
+  </p>
+  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+    <a href="/quickstart" style={{
+      background: '#f0d85c',
+      color: '#2e2e2e',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '20px',
+      textDecoration: 'none',
+      fontWeight: '600',
+      display: 'inline-block'
+    }}>
+      Get Started
+    </a>
+    <a href="https://github.com/rafaelval/Villa-buena-ecommerce" style={{
+      background: 'transparent',
+      color: '#f0d85c',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '0px',
+      border: '2px solid #f0d85c',
+      textDecoration: 'none',
+      fontWeight: '600',
+      display: 'inline-block'
+    }}>
+      View on GitHub
+    </a>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## Key Features
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Villa Buena E-Commerce provides everything you need to build a complete online shopping experience.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Product Catalog" icon="grid" href="/features/product-catalog">
+    Browse products with advanced filtering, search, and sorting capabilities
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Shopping Cart" icon="cart-shopping" href="/features/shopping-cart">
+    Persistent cart storage with real-time updates and quantity management
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Secure Checkout" icon="credit-card" href="/features/checkout-flow">
+    Multi-step checkout process with shipping and payment collection
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="User Accounts" icon="user" href="/features/user-accounts">
+    Auth0-powered authentication with profile management
   </Card>
-</Columns>
+  <Card title="Order History" icon="clock-rotate-left" href="/features/order-history">
+    Track past orders and view order details
+  </Card>
+  <Card title="Responsive Design" icon="mobile" href="/architecture/overview">
+    Built with Bootstrap for mobile-friendly experiences
+  </Card>
+</CardGroup>
 
-## Create beautiful pages
+## Quick Start
 
-Everything you need to create world-class documentation.
+Get up and running with Villa Buena E-Commerce in minutes.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<Steps>
+  <Step title="Install Dependencies">
+    Clone the repository and install dependencies
+    
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+    
+    ```bash yarn
+    yarn install
+    ```
+    
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Configure Environment">
+    Set up your environment variables for API integration
+    
+    ```bash .env
+    VITE_API_URL=https://api.example.com
+    ```
+  </Step>
+  
+  <Step title="Start Development Server">
+    Launch the development server
+    
+    ```bash
+    npm run dev
+    ```
+  </Step>
+</Steps>
 
-## Need inspiration?
+## Architecture Overview
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+Villa Buena E-Commerce is built with modern React patterns and best practices.
+
+<CardGroup cols={3}>
+  <Card title="State Management" icon="database" href="/architecture/state-management">
+    Zustand for global state with persistence
+  </Card>
+  <Card title="Data Fetching" icon="download" href="/architecture/api-integration">
+    React Query for server state management
+  </Card>
+  <Card title="Routing" icon="route" href="/architecture/routing">
+    React Router for client-side navigation
+  </Card>
+</CardGroup>
+
+## Explore the Documentation
+
+<CardGroup cols={2}>
+  <Card title="Component Library" icon="puzzle-piece" href="/components/product-card">
+    Explore reusable UI components
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/product-service">
+    Browse the complete API documentation
+  </Card>
+  <Card title="Development Guide" icon="hammer" href="/development/setup">
+    Learn how to set up your development environment
+  </Card>
+  <Card title="Core Features" icon="star" href="/features/product-catalog">
+    Deep dive into platform capabilities
+  </Card>
+</CardGroup>

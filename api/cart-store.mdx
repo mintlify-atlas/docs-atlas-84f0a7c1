@@ -1,0 +1,283 @@
+---
+title: 'useCartStore'
+description: 'Zustand store for managing shopping cart state with persistent local storage'
+---
+
+## Overview
+
+The `useCartStore` is a Zustand store that manages the shopping cart state across the application. It provides methods to add, remove, update quantities, and clear the cart. The store uses Zustand's persist middleware to save cart data to local storage under the key `cart-storage`.
+
+**Store Location:** `src/store/useCartStore.js`
+
+## State Shape
+
+<ResponseField name="cart" type="array" required>
+  Array of cart items. Each item contains the product data plus a `qty` field.
+  
+  <expandable title="Cart Item Structure">
+    <ResponseField name="id" type="string | number">
+      Product ID
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      Product title
+    </ResponseField>
+    <ResponseField name="price" type="number">
+      Product price
+    </ResponseField>
+    <ResponseField name="thumbnail" type="string">
+      Product image URL
+    </ResponseField>
+    <ResponseField name="qty" type="number">
+      Quantity of this item in cart
+    </ResponseField>
+  </expandable>
+</ResponseField>
+
+## Methods
+
+### addToCart
+
+Adds a product to the cart. If the product already exists, increments the quantity by 1. Otherwise, adds it with `qty: 1`.
+
+<ParamField path="product" type="object" required>
+  The product object to add to the cart. Must include `id`, `title`, `price`, and `thumbnail` fields.
+</ParamField>
+
+```javascript
+const addToCart = useCartStore((state) => state.addToCart);
+
+addToCart({
+  id: 1,
+  title: "Premium Headphones",
+  price: 99.99,
+  thumbnail: "/images/headphones.jpg"
+});
+```
+
+### increaseQty
+
+Increases the quantity of a cart item by 1.
+
+<ParamField path="id" type="string | number" required>
+  The product ID to increase quantity for
+</ParamField>
+
+```javascript
+const increaseQty = useCartStore((state) => state.increaseQty);
+
+increaseQty(1);
+```
+
+### decreaseQty
+
+Decreases the quantity of a cart item by 1. If quantity reaches 0, the item is automatically removed from the cart.
+
+<ParamField path="id" type="string | number" required>
+  The product ID to decrease quantity for
+</ParamField>
+
+```javascript
+const decreaseQty = useCartStore((state) => state.decreaseQty);
+
+decreaseQty(1);
+```
+
+### removeFromCart
+
+Removes an item from the cart completely, regardless of quantity.
+
+<ParamField path="id" type="string | number" required>
+  The product ID to remove from the cart
+</ParamField>
+
+```javascript
+const removeFromCart = useCartStore((state) => state.removeFromCart);
+
+removeFromCart(1);
+```
+
+### clearCart
+
+Clears all items from the cart.
+
+```javascript
+const clearCart = useCartStore((state) => state.clearCart);
+
+clearCart();
+```
+
+## Usage Examples
+
+### Basic Usage - Single Selector
+
+<CodeGroup>
+```jsx Cart.jsx
+import { useCartStore } from "../../store/useCartStore";
+
+export const Cart = () => {
+  const { cart, increaseQty, decreaseQty, removeFromCart } = useCartStore();
+
+  const total = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+
+  return (
+    <div>
+      <h2>Shopping Cart ({totalItems} items)</h2>
+      {cart.map((item) => (
+        <div key={item.id}>
+          <h3>{item.title}</h3>
+          <p>${(item.price * item.qty).toFixed(2)}</p>
+          <div>
+            <button onClick={() => decreaseQty(item.id)}>-</button>
+            <span>{item.qty}</span>
+            <button onClick={() => increaseQty(item.id)}>+</button>
+          </div>
+          <button onClick={() => removeFromCart(item.id)}>Remove</button>
+        </div>
+      ))}
+      <h3>Total: ${total.toFixed(2)}</h3>
+    </div>
+  );
+};
+```
+
+```jsx ProductCard.jsx
+import { useCartStore } from "../../store/useCartStore";
+import { useUIStore } from "../../store/uiStore";
+
+export const ProductCard = ({ product }) => {
+  const addToCart = useCartStore((state) => state.addToCart);
+  const showToast = useUIStore((state) => state.showToast);
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    showToast(`${product.title} added to cart`);
+  };
+
+  return (
+    <div>
+      <h3>{product.title}</h3>
+      <p>${product.price}</p>
+      <button onClick={handleAddToCart}>Add to Cart</button>
+    </div>
+  );
+};
+```
+
+```jsx Navbar.jsx
+import { useCartStore } from "../../store/useCartStore";
+import { useUIStore } from "../../store/uiStore";
+import { ShoppingCart } from "lucide-react";
+
+const Navbar = () => {
+  const cart = useCartStore((state) => state.cart);
+  const { openCart } = useUIStore();
+
+  const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+
+  return (
+    <nav>
+      <button onClick={openCart}>
+        <ShoppingCart size={20} />
+        {totalItems > 0 && <span>{totalItems}</span>}
+      </button>
+    </nav>
+  );
+};
+```
+</CodeGroup>
+
+### Checkout Flow
+
+<CodeGroup>
+```jsx CheckoutPayment.jsx
+import { useCartStore } from "../../store/useCartStore";
+import { useUserStore } from "../../store/useUserStore";
+import { useNavigate } from "react-router-dom";
+
+export const CheckoutPayment = () => {
+  const cart = useCartStore((state) => state.cart);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const addOrder = useUserStore((state) => state.addOrder);
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const order = {
+      id: Date.now(),
+      items: cart,
+      total: cart.reduce((acc, item) => acc + item.price * item.qty, 0),
+      date: new Date().toISOString()
+    };
+    
+    addOrder(order);
+    clearCart();
+    navigate("/order-confirmation");
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Payment form fields */}
+      <button type="submit">Place Order</button>
+    </form>
+  );
+};
+```
+</CodeGroup>
+
+## Local Storage
+
+<Note>
+  The cart store is persisted to local storage with the key **`cart-storage`**. This allows the cart to persist across browser sessions and page refreshes.
+</Note>
+
+### Storage Structure
+
+```json
+{
+  "state": {
+    "cart": [
+      {
+        "id": 1,
+        "title": "Premium Headphones",
+        "price": 99.99,
+        "thumbnail": "/images/headphones.jpg",
+        "qty": 2
+      }
+    ]
+  },
+  "version": 0
+}
+```
+
+## Best Practices
+
+1. **Selector Optimization**: Use specific selectors to avoid unnecessary re-renders
+   ```javascript
+   // Good - only re-renders when cart changes
+   const cart = useCartStore((state) => state.cart);
+   
+   // Good - only re-renders when needed method is added/changed
+   const addToCart = useCartStore((state) => state.addToCart);
+   
+   // Avoid - re-renders on any state change
+   const store = useCartStore();
+   ```
+
+2. **Computed Values**: Calculate totals in components rather than storing them
+   ```javascript
+   const total = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+   const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+   ```
+
+3. **Type Safety**: Consider adding TypeScript types for better development experience
+   ```typescript
+   interface CartItem {
+     id: number;
+     title: string;
+     price: number;
+     thumbnail: string;
+     qty: number;
+   }
+   ```

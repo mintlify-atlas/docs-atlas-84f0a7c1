@@ -1,0 +1,175 @@
+---
+title: Architecture Overview
+description: High-level architecture and technology stack of Villa Buena E-Commerce
+icon: sitemap
+---
+
+## Technology Stack
+
+Villa Buena E-Commerce is built with a modern React ecosystem leveraging industry-standard libraries for optimal performance and developer experience.
+
+<CardGroup cols={2}>
+  <Card title="Frontend Framework" icon="react">
+    React 19.2.0 with functional components and hooks
+  </Card>
+  <Card title="Build Tool" icon="gear">
+    Vite 7.3.1 for fast development and optimized production builds
+  </Card>
+  <Card title="State Management" icon="database">
+    Zustand 5.0.11 with persistence middleware
+  </Card>
+  <Card title="Data Fetching" icon="cloud">
+    TanStack React Query 5.90.21 for server state
+  </Card>
+  <Card title="Routing" icon="route">
+    React Router DOM 7.13.1 with nested routes
+  </Card>
+  <Card title="HTTP Client" icon="globe">
+    Axios 1.13.6 for API communication
+  </Card>
+  <Card title="Authentication" icon="lock">
+    Auth0 React 2.15.0 for secure user authentication
+  </Card>
+  <Card title="UI Framework" icon="palette">
+    Bootstrap 5.3.8 with custom styling
+  </Card>
+</CardGroup>
+
+## Core Dependencies
+
+The application leverages the following key dependencies from `package.json:12-21`:
+
+```json
+"dependencies": {
+  "@auth0/auth0-react": "^2.15.0",
+  "@tanstack/react-query": "^5.90.21",
+  "axios": "^1.13.6",
+  "bootstrap": "^5.3.8",
+  "lucide-react": "^0.577.0",
+  "react": "^19.2.0",
+  "react-dom": "^19.2.0",
+  "react-router-dom": "^7.13.1",
+  "zustand": "^5.0.11"
+}
+```
+
+## Architectural Layers
+
+The application follows a clear separation of concerns across multiple layers:
+
+<Steps>
+  <Step title="Presentation Layer">
+    React components organized by feature (pages, components) that render the UI and handle user interactions.
+  </Step>
+  
+  <Step title="State Management Layer">
+    Zustand stores manage client-side state (cart, user data, UI preferences) with localStorage persistence.
+  </Step>
+  
+  <Step title="Data Layer">
+    React Query handles server state, caching, and data synchronization with automatic refetching and background updates.
+  </Step>
+  
+  <Step title="Service Layer">
+    Service modules encapsulate API communication logic and provide clean interfaces for data operations.
+  </Step>
+  
+  <Step title="API Layer">
+    Axios instance configured with base URL from environment variables for external API integration.
+  </Step>
+</Steps>
+
+## Application Entry Point
+
+The application initializes in `main.jsx:13-24` with a provider hierarchy:
+
+```jsx
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <QueryProvider>
+    <Auth0Provider
+      domain="dev-rafaelval.us.auth0.com"
+      clientId="ripKJ8Jjq1c3gLEOcusOGUTBTFVGoVdG"
+      authorizationParams={{ redirect_uri: window.location.origin }}
+      onRedirectCallback={onRedirectCallback}
+      cacheLocation="localstorage"
+    >
+      <RouterProvider router={router} />
+    </Auth0Provider>
+  </QueryProvider>,
+);
+```
+
+<Note>
+The provider hierarchy ensures that React Query, Auth0, and React Router are available throughout the entire component tree.
+</Note>
+
+## Directory Structure
+
+The source code is organized as follows:
+
+```
+src/
+├── app/
+│   ├── providers/      # Provider components (QueryProvider)
+│   ├── router.jsx      # Route configuration
+│   └── Layout.jsx      # Root layout component
+├── components/         # Reusable UI components
+├── pages/             # Page-level components
+├── store/             # Zustand state stores
+├── services/          # API service modules
+├── hooks/             # Custom React hooks
+├── main.jsx           # Application entry point
+└── index.css          # Global styles
+```
+
+## Design Patterns
+
+### Provider Pattern
+The application uses React Context providers for cross-cutting concerns like data fetching and authentication.
+
+### Custom Hooks
+Business logic is encapsulated in custom hooks (`useProducts`, `useProduct`) that combine React Query with service layer calls.
+
+### Service Layer Pattern
+API calls are abstracted into service modules, keeping components clean and focused on presentation.
+
+### Store Pattern
+Zustand stores follow a simple create/update pattern with minimal boilerplate compared to Redux.
+
+## Build Configuration
+
+The project uses Vite with minimal configuration in `vite.config.js:5-7`:
+
+```javascript
+export default defineConfig({
+  plugins: [react()],
+})
+```
+
+<Tip>
+Vite's near-instantaneous HMR (Hot Module Replacement) and optimized build process make it ideal for modern React development.
+</Tip>
+
+## Environment Configuration
+
+The API base URL is configured via environment variables:
+
+```javascript
+baseURL: import.meta.env.VITE_API_URL
+```
+
+This allows different configurations for development, staging, and production environments.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="database" href="/architecture/state-management">
+    Learn about Zustand stores and client state patterns
+  </Card>
+  <Card title="Routing" icon="route" href="/architecture/routing">
+    Explore React Router configuration and navigation
+  </Card>
+  <Card title="API Integration" icon="globe" href="/architecture/api-integration">
+    Understand API services and React Query integration
+  </Card>
+</CardGroup>

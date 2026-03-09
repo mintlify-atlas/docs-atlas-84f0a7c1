@@ -1,0 +1,380 @@
+---
+title: 'Product Service'
+description: 'Service module for managing product-related API operations'
+icon: 'box'
+---
+
+## Overview
+
+The `productService` module provides methods to interact with the product endpoints of the Villa Buena E-Commerce API. It handles fetching products, retrieving individual product details, and filtering products by category.
+
+## Base Configuration
+
+All service methods use the configured Axios instance from `api.js`:
+
+```javascript
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+```
+
+## Methods
+
+### getAll()
+
+Retrieves all products from the API with a limit of 200 items.
+
+<ParamField path="return" type="Promise<Array<Product>>">
+  Returns a promise that resolves to an array of product objects
+</ParamField>
+
+#### API Endpoint
+
+```
+GET /products?limit=200
+```
+
+#### Usage Example
+
+<CodeGroup>
+
+```javascript Basic Usage
+import { productService } from './services/productService';
+
+const products = await productService.getAll();
+console.log(products);
+```
+
+```javascript With Error Handling
+import { productService } from './services/productService';
+
+try {
+  const products = await productService.getAll();
+  console.log(`Fetched ${products.length} products`);
+} catch (error) {
+  console.error('Failed to fetch products:', error);
+}
+```
+
+```javascript React Component
+import { useEffect, useState } from 'react';
+import { productService } from './services/productService';
+
+function ProductList() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    productService.getAll()
+      .then(data => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error(error);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      {products.map(product => (
+        <div key={product.id}>{product.title}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+</CodeGroup>
+
+#### Response Structure
+
+<ResponseField name="id" type="number" required>
+  Unique identifier for the product
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Product name
+</ResponseField>
+
+<ResponseField name="price" type="number" required>
+  Product price in USD
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Detailed product description
+</ResponseField>
+
+<ResponseField name="category" type="string" required>
+  Product category name
+</ResponseField>
+
+<ResponseField name="image" type="string" required>
+  URL to the product image
+</ResponseField>
+
+<ResponseField name="rating" type="object" required>
+  Product rating information
+  <ResponseField name="rating.rate" type="number">
+    Average rating score
+  </ResponseField>
+  <ResponseField name="rating.count" type="number">
+    Number of ratings
+  </ResponseField>
+</ResponseField>
+
+---
+
+### getById()
+
+Retrieves a single product by its unique identifier.
+
+<ParamField path="id" type="number" required>
+  The unique identifier of the product to retrieve
+</ParamField>
+
+<ParamField path="return" type="Promise<Product>">
+  Returns a promise that resolves to a single product object
+</ParamField>
+
+#### API Endpoint
+
+```
+GET /products/{id}
+```
+
+#### Usage Example
+
+<CodeGroup>
+
+```javascript Basic Usage
+import { productService } from './services/productService';
+
+const product = await productService.getById(1);
+console.log(product.title);
+```
+
+```javascript With Error Handling
+import { productService } from './services/productService';
+
+try {
+  const product = await productService.getById(1);
+  console.log('Product:', product);
+} catch (error) {
+  if (error.response?.status === 404) {
+    console.error('Product not found');
+  } else {
+    console.error('Failed to fetch product:', error);
+  }
+}
+```
+
+```javascript React Component
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { productService } from './services/productService';
+
+function ProductDetail() {
+  const { id } = useParams();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    productService.getById(id)
+      .then(data => {
+        setProduct(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div>
+      <h1>{product.title}</h1>
+      <img src={product.image} alt={product.title} />
+      <p>{product.description}</p>
+      <p>Price: ${product.price}</p>
+    </div>
+  );
+}
+```
+
+</CodeGroup>
+
+#### Response Structure
+
+Returns a single product object with the same structure as described in `getAll()`.
+
+<Note>
+  If the product ID does not exist, the API will return a 404 error. Make sure to handle this case in your application.
+</Note>
+
+---
+
+### getByCategory()
+
+Retrieves all products belonging to a specific category.
+
+<ParamField path="category" type="string" required>
+  The category name to filter products by (e.g., "electronics", "jewelery", "men's clothing", "women's clothing")
+</ParamField>
+
+<ParamField path="return" type="Promise<Array<Product>>">
+  Returns a promise that resolves to an array of product objects in the specified category
+</ParamField>
+
+#### API Endpoint
+
+```
+GET /products/category/{category}
+```
+
+#### Usage Example
+
+<CodeGroup>
+
+```javascript Basic Usage
+import { productService } from './services/productService';
+
+const electronics = await productService.getByCategory('electronics');
+console.log(electronics);
+```
+
+```javascript With Error Handling
+import { productService } from './services/productService';
+
+try {
+  const products = await productService.getByCategory('electronics');
+  console.log(`Found ${products.length} products in electronics`);
+} catch (error) {
+  console.error('Failed to fetch products:', error);
+}
+```
+
+```javascript React Component
+import { useEffect, useState } from 'react';
+import { productService } from './services/productService';
+
+function CategoryProducts({ category }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    productService.getByCategory(category)
+      .then(data => {
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error(error);
+        setLoading(false);
+      });
+  }, [category]);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <h2>{category}</h2>
+      <div className="product-grid">
+        {products.map(product => (
+          <div key={product.id} className="product-card">
+            <img src={product.image} alt={product.title} />
+            <h3>{product.title}</h3>
+            <p>${product.price}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+```javascript Multiple Categories
+import { productService } from './services/productService';
+
+// Fetch multiple categories in parallel
+const [electronics, jewelry, mensClothing, womensClothing] = await Promise.all([
+  productService.getByCategory('electronics'),
+  productService.getByCategory('jewelery'),
+  productService.getByCategory("men's clothing"),
+  productService.getByCategory("women's clothing"),
+]);
+
+console.log('All categories loaded');
+```
+
+</CodeGroup>
+
+#### Response Structure
+
+Returns an array of product objects with the same structure as described in `getAll()`.
+
+<Note>
+  Category names are case-sensitive. Use the `categoryService.getAll()` method to retrieve the list of valid category names.
+</Note>
+
+---
+
+## Implementation Details
+
+### Source Code
+
+Location: `src/services/productService.js`
+
+```javascript
+import { api } from "./api";
+
+export const productService = {
+  getAll: async () => {
+    const { data } = await api.get("/products?limit=200");
+    return data;
+  },
+  getById: async (id) => {
+    const { data } = await api.get(`/products/${id}`);
+    return data;
+  },
+  getByCategory: async (category) => {
+    const { data } = await api.get(`/products/category/${category}`);
+    return data;
+  },
+};
+```
+
+### Key Features
+
+- **Async/Await Pattern**: All methods use modern async/await syntax for cleaner asynchronous code
+- **Data Extraction**: Destructures the `data` property from Axios responses automatically
+- **Centralized Configuration**: Uses the shared `api` instance for consistent base URL and configuration
+- **Simple Interface**: Provides a clean, intuitive API for product operations
+
+### Error Handling
+
+All methods can throw errors in the following scenarios:
+
+- Network failures
+- API server errors (5xx)
+- Invalid endpoints (4xx)
+- Timeout errors
+
+It's recommended to wrap all service calls in try-catch blocks or use `.catch()` handlers.
+
+---
+
+## Related Services
+
+- [Category Service](/api/category-service) - Manage product categories
+- Base API Configuration (`src/services/api.js`)

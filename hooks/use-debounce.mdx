@@ -1,0 +1,320 @@
+---
+title: 'useDebounce'
+description: 'Custom React hook for debouncing values to reduce API calls and improve performance'
+icon: 'clock'
+---
+
+## Overview
+
+The `useDebounce` hook delays updating a value until after a specified delay period has passed without the value changing. This is essential for optimizing search inputs and preventing excessive API calls.
+
+**Source:** `src/hooks/useDebounce.js:3`
+
+## Function Signature
+
+```javascript
+export const useDebounce = (value, delay = 500) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+```
+
+## Parameters
+
+<ParamField path="value" type="any" required>
+  The value to debounce (commonly a search string or user input)
+</ParamField>
+
+<ParamField path="delay" type="number" default={500}>
+  Delay in milliseconds before updating the debounced value. Defaults to 500ms.
+</ParamField>
+
+## Return Value
+
+<ResponseField name="debouncedValue" type="any">
+  The debounced version of the input value. Only updates after the delay period has elapsed without changes.
+</ResponseField>
+
+## How It Works
+
+1. User types in an input field → `value` changes rapidly
+2. Hook sets a timer for the specified `delay`
+3. If `value` changes again before timer completes → timer resets
+4. Once user stops typing for `delay` milliseconds → `debouncedValue` updates
+5. Cleanup function cancels pending timers on unmount
+
+<Note>
+  This prevents API calls or expensive operations from firing on every keystroke. Instead, they only fire once the user has stopped typing.
+</Note>
+
+## Usage Examples
+
+<CodeGroup>
+
+```jsx Search Filter (Real Implementation)
+import { useState, useEffect } from "react";
+import { useDebounce } from "../../hooks/useDebounce";
+
+const Filters = ({ setSearchParams }) => {
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 500);
+
+  useEffect(() => {
+    setSearchParams((prevParams) => {
+      const params = new URLSearchParams(prevParams);
+      
+      if (debouncedSearch) {
+        params.set("search", debouncedSearch);
+      } else {
+        params.delete("search");
+      }
+      
+      params.set("page", "1");
+      return params;
+    });
+  }, [debouncedSearch, setSearchParams]);
+
+  return (
+    <input
+      type="text"
+      className="form-control"
+      placeholder="Search products..."
+      value={searchInput}
+      onChange={(e) => setSearchInput(e.target.value)}
+    />
+  );
+};
+```
+
+```jsx Search with API Call
+import { useState } from "react";
+import { useDebounce } from "../hooks/useDebounce";
+import { useQuery } from "@tanstack/react-query";
+import { searchProducts } from "../api/products";
+
+const SearchBar = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const { data: results, isLoading } = useQuery({
+    queryKey: ["search", debouncedSearchTerm],
+    queryFn: () => searchProducts(debouncedSearchTerm),
+    enabled: debouncedSearchTerm.length > 0,
+  });
+
+  return (
+    <div>
+      <input
+        type="search"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search..."
+      />
+      {isLoading && <span>Searching...</span>}
+      {results && <SearchResults items={results} />}
+    </div>
+  );
+};
+```
+
+```jsx Auto-save Form
+import { useState, useEffect } from "react";
+import { useDebounce } from "../hooks/useDebounce";
+import { saveUserProfile } from "../api/user";
+
+const ProfileEditor = ({ userId }) => {
+  const [bio, setBio] = useState("");
+  const debouncedBio = useDebounce(bio, 1000);
+
+  useEffect(() => {
+    if (debouncedBio) {
+      saveUserProfile(userId, { bio: debouncedBio });
+      console.log("Profile saved!");
+    }
+  }, [debouncedBio, userId]);
+
+  return (
+    <textarea
+      value={bio}
+      onChange={(e) => setBio(e.target.value)}
+      placeholder="Tell us about yourself..."
+    />
+  );
+};
+```
+
+```jsx Window Resize Handler
+import { useState, useEffect } from "react";
+import { useDebounce } from "../hooks/useDebounce";
+
+const ResponsiveComponent = () => {
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const debouncedWidth = useDebounce(windowWidth, 200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Expensive recalculation only happens after resize stops
+    console.log("Recalculating layout for width:", debouncedWidth);
+  }, [debouncedWidth]);
+
+  return <div>Current width: {debouncedWidth}px</div>;
+};
+```
+
+</CodeGroup>
+
+## Performance Benefits
+
+### Without Debouncing
+
+```javascript
+// User types "laptop" (6 characters)
+// Result: 6 API calls fired
+L      → API call
+La     → API call
+Lap    → API call
+Lapt   → API call
+Lapto  → API call
+Laptop → API call
+```
+
+### With Debouncing (500ms)
+
+```javascript
+// User types "laptop" (6 characters)
+// Result: 1 API call fired (500ms after user stops typing)
+L
+La
+Lap
+Lapt
+Lapto
+Laptop → [wait 500ms] → API call
+```
+
+<Note>
+  This reduces API calls by up to 83% in this example, significantly improving performance and reducing server load.
+</Note>
+
+## Delay Recommendations
+
+- **Search inputs**: 300-500ms (good balance between responsiveness and performance)
+- **Auto-save**: 1000-2000ms (prevent too frequent saves)
+- **Window resize**: 100-200ms (quick enough to feel responsive)
+- **Typing indicators**: 300-500ms
+
+## Real-World Implementation
+
+From the Filters component (`src/components/filters/Filters.jsx:13`):
+
+```jsx
+const Filters = ({ searchParam, setSearchParams }) => {
+  const [searchInput, setSearchInput] = useState(searchParam);
+  const debouncedSearch = useDebounce(searchInput, 500);
+
+  useEffect(() => {
+    // Only update URL params after user stops typing
+    setSearchParams((prevParams) => {
+      const params = new URLSearchParams(prevParams);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      else params.delete("search");
+      return params;
+    });
+  }, [debouncedSearch, setSearchParams]);
+
+  return (
+    <input
+      type="text"
+      value={searchInput}
+      onChange={(e) => setSearchInput(e.target.value)}
+      placeholder="Search products..."
+    />
+  );
+};
+```
+
+## Cleanup and Memory Management
+
+<Note>
+  The hook automatically cleans up pending timers when:
+  - The component unmounts
+  - The value changes before the delay completes
+  - The delay parameter changes
+
+  This prevents memory leaks and ensures timers don't fire after component unmount.
+</Note>
+
+## TypeScript Usage
+
+If using TypeScript, you can add type safety:
+
+```typescript
+export const useDebounce = <T,>(value: T, delay: number = 500): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+```
+
+## Common Patterns
+
+### Pattern 1: Search with URL Params
+
+```jsx
+const [searchInput, setSearchInput] = useState("");
+const debouncedSearch = useDebounce(searchInput, 500);
+
+useEffect(() => {
+  updateURLParams({ search: debouncedSearch });
+}, [debouncedSearch]);
+```
+
+### Pattern 2: API Query Trigger
+
+```jsx
+const [query, setQuery] = useState("");
+const debouncedQuery = useDebounce(query, 300);
+
+const { data } = useQuery({
+  queryKey: ["search", debouncedQuery],
+  queryFn: () => searchAPI(debouncedQuery),
+  enabled: debouncedQuery.length > 2,
+});
+```
+
+### Pattern 3: Form Validation
+
+```jsx
+const [email, setEmail] = useState("");
+const debouncedEmail = useDebounce(email, 500);
+
+useEffect(() => {
+  validateEmail(debouncedEmail);
+}, [debouncedEmail]);
+```
+
+## Related Hooks
+
+- [useProducts](/hooks/use-products) - Often used together for search functionality
+- [useCategories](/hooks/use-categories) - Category filtering that may benefit from debouncing

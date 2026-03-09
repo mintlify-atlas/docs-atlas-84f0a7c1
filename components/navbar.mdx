@@ -1,0 +1,295 @@
+---
+title: 'Navbar'
+description: 'Main navigation bar with cart, theme toggle, and user authentication'
+icon: 'bars'
+---
+
+## Overview
+
+The `Navbar` component provides the main navigation header with logo, shopping cart button, dark mode toggle, and user authentication controls. It integrates with Auth0 for authentication and displays a scrolled state when the user scrolls down the page.
+
+## Props
+
+This component does not accept props. It manages its own state and integrates with:
+
+- `useCartStore` - Cart state for badge count
+- `useUIStore` - Dark mode and cart drawer controls
+- `useAuth0` - Authentication state and methods
+
+## Usage
+
+<CodeGroup>
+```jsx Basic Setup
+import Navbar from "../components/navbar/Navbar";
+
+function Layout() {
+  return (
+    <>
+      <Navbar />
+      <main>
+        {/* Page content */}
+      </main>
+    </>
+  );
+}
+```
+
+```jsx With Layout (Real Example)
+import { Outlet } from "react-router-dom";
+import Navbar from "../components/navbar/Navbar";
+import { CartDrawer } from "../components/cart/CartDrawer";
+
+export const Layout = () => {
+  return (
+    <>
+      <Navbar />
+      <CartDrawer />
+      <Outlet />
+    </>
+  );
+};
+```
+</CodeGroup>
+
+## Features
+
+### Logo & Brand
+
+The logo links to the home page:
+
+```jsx src/components/navbar/Navbar.jsx:55-57
+<Link to="/" className="navbar-logo">
+  <img src="/logo.png" alt="Villa Buena" />
+</Link>
+```
+
+### Shopping Cart Button
+
+Displays cart icon with item count badge:
+
+```jsx src/components/navbar/Navbar.jsx:27-31
+const cart = useCartStore((state) => state.cart);
+const { darkMode, toggleDarkMode, openCart } = useUIStore();
+
+const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+```
+
+```jsx src/components/navbar/Navbar.jsx:62-71
+<button
+  className="navbar-cart-button"
+  onClick={openCart}
+  aria-label="Shopping cart"
+>
+  <ShoppingCart size={20} />
+  {totalItems > 0 && (
+    <span className="navbar-cart-badge">{totalItems}</span>
+  )}
+</button>
+```
+
+<Note>
+The cart badge only appears when there are items in the cart (`totalItems > 0`).
+</Note>
+
+### Dark Mode Toggle
+
+Toggle button switches between light and dark themes:
+
+```jsx src/components/navbar/Navbar.jsx:73-79
+<button
+  className="navbar-theme-toggle"
+  onClick={toggleDarkMode}
+  aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+>
+  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+</button>
+```
+
+### Authentication Integration
+
+Integrates with Auth0 for user authentication:
+
+```jsx src/components/navbar/Navbar.jsx:13-20
+const {
+  isLoading,
+  isAuthenticated,
+  error,
+  loginWithRedirect: login,
+  logout: auth0Logout,
+  user,
+} = useAuth0();
+```
+
+#### Login Button (Unauthenticated)
+
+```jsx src/components/navbar/Navbar.jsx:130-136
+<div className="d-flex align-items-center gap-2">
+  {error && (
+    <p className="text-danger mb-0" style={{ fontSize: "0.75rem" }}>
+      Error
+    </p>
+  )}
+  <button className="navbar-auth-btn" onClick={login}>
+    Login
+  </button>
+</div>
+```
+
+#### User Menu (Authenticated)
+
+When logged in, displays user avatar and dropdown menu:
+
+```jsx src/components/navbar/Navbar.jsx:87-102
+<button
+  className="navbar-user-trigger"
+  onClick={() => setUserMenuOpen(!userMenuOpen)}
+  aria-label="User menu"
+>
+  <img
+    src={user?.picture}
+    alt="profile"
+    className="navbar-user-avatar"
+  />
+  <span className="navbar-user-name">{user?.given_name}</span>
+  <ChevronDown
+    size={12}
+    className={`navbar-user-chevron ${userMenuOpen ? "open" : ""}`}
+  />
+</button>
+```
+
+#### User Dropdown Menu
+
+```jsx src/components/navbar/Navbar.jsx:104-127
+{isAuthenticated && userMenuOpen && (
+  <div className="navbar-user-menu">
+    <Link
+      to="/account"
+      className="navbar-user-menu-item"
+      onClick={() => setUserMenuOpen(false)}
+    >
+      Account Information
+    </Link>
+    <Link
+      to="/orders"
+      className="navbar-user-menu-item"
+      onClick={() => setUserMenuOpen(false)}
+    >
+      Order History
+    </Link>
+    <button
+      className="navbar-user-menu-item logout"
+      onClick={logout}
+    >
+      Logout
+    </button>
+  </div>
+)}
+```
+
+### Scroll State
+
+Navbar changes appearance when scrolled:
+
+```jsx src/components/navbar/Navbar.jsx:29-37
+const [scrolled, setScrolled] = useState(false);
+
+useEffect(() => {
+  const handleScroll = () => setScrolled(window.scrollY > 50);
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+```
+
+```jsx src/components/navbar/Navbar.jsx:52
+<nav className={`navbar-custom ${scrolled ? "scrolled" : ""}`}>
+```
+
+### Click Outside to Close Menu
+
+User menu closes when clicking outside:
+
+```jsx src/components/navbar/Navbar.jsx:40-48
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    if (menuRef.current && !menuRef.current.contains(e.target)) {
+      setUserMenuOpen(false);
+    }
+  };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
+```
+
+### Logout Functionality
+
+Logout clears local storage and redirects:
+
+```jsx src/components/navbar/Navbar.jsx:22-25
+const logout = () => {
+  localStorage.removeItem("user-checkout-storage");
+  auth0Logout({ logoutParams: { returnTo: window.location.origin } });
+};
+```
+
+## Structure
+
+The navbar is organized with:
+
+1. **Left Side**: Logo
+2. **Right Side**: Cart button, theme toggle, user controls
+
+```jsx
+<nav className={`navbar-custom ${scrolled ? "scrolled" : ""}`}>
+  <div className="container d-flex justify-content-between align-items-center py-1">
+    {/* Logo */}
+    <Link to="/" className="navbar-logo">
+      <img src="/logo.png" alt="Villa Buena" />
+    </Link>
+
+    {/* Controls */}
+    <div className="d-flex align-items-center gap-3">
+      {/* Cart button */}
+      {/* Theme toggle */}
+      {/* User section */}
+    </div>
+  </div>
+</nav>
+```
+
+## Styling
+
+The component uses these CSS classes from `Navbar.css`:
+
+- `.navbar-custom` - Main navbar container
+- `.navbar-custom.scrolled` - Scrolled state styles
+- `.navbar-logo` - Logo container
+- `.navbar-cart-button` - Cart button styling
+- `.navbar-cart-badge` - Cart item count badge
+- `.navbar-theme-toggle` - Theme toggle button
+- `.navbar-user-wrapper` - User section container
+- `.navbar-user-trigger` - User menu trigger button
+- `.navbar-user-avatar` - User profile image
+- `.navbar-user-menu` - Dropdown menu
+- `.navbar-user-menu-item` - Menu items
+
+<Tip>
+The navbar automatically adapts to authentication state, showing a login button for guests and a user menu for authenticated users.
+</Tip>
+
+## Accessibility
+
+The component includes proper ARIA labels:
+
+```jsx
+aria-label="Shopping cart"
+aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+aria-label="User menu"
+```
+
+## Icons
+
+Uses Lucide React icons:
+- `ShoppingCart` - Cart button
+- `Sun` / `Moon` - Theme toggle
+- `ChevronDown` - User menu indicator

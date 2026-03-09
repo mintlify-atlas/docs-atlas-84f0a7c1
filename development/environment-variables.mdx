@@ -1,0 +1,207 @@
+---
+title: 'Environment Variables'
+description: 'Configure environment variables for Villa Buena E-Commerce'
+---
+
+## Overview
+
+Villa Buena E-Commerce uses environment variables to configure API endpoints, authentication settings, and other runtime configurations. The project uses Vite's environment variable system, which requires variables to be prefixed with `VITE_` to be exposed to the client.
+
+<Warning>
+  Never commit `.env` files containing sensitive data to version control. Add them to `.gitignore`.
+</Warning>
+
+## Required Variables
+
+### API Configuration
+
+<ParamField path="VITE_API_URL" type="string" required>
+  The base URL for the backend API server.
+  
+  **Usage:** Configured in `src/services/api.js` as the baseURL for axios instances.
+  
+  **Example values:**
+  - Development: `http://localhost:3000/api`
+  - Production: `https://api.villabuena.com`
+</ParamField>
+
+## Authentication Configuration
+
+<Note>
+  Auth0 credentials are currently hardcoded in `src/main.jsx`. For production deployments, these should be moved to environment variables.
+</Note>
+
+### Current Auth0 Setup
+
+The application currently uses the following Auth0 configuration (defined in `src/main.jsx:16-18`):
+
+```jsx
+<Auth0Provider
+  domain="dev-rafaelval.us.auth0.com"
+  clientId="ripKJ8Jjq1c3gLEOcusOGUTBTFVGoVdG"
+  authorizationParams={{ redirect_uri: window.location.origin }}
+  onRedirectCallback={onRedirectCallback}
+  cacheLocation="localstorage"
+>
+```
+
+### Recommended Environment Variables (Future)
+
+For better security and environment separation, consider adding:
+
+<ParamField path="VITE_AUTH0_DOMAIN" type="string">
+  Auth0 tenant domain
+  
+  **Example:** `dev-rafaelval.us.auth0.com`
+</ParamField>
+
+<ParamField path="VITE_AUTH0_CLIENT_ID" type="string">
+  Auth0 application client ID
+  
+  **Example:** `ripKJ8Jjq1c3gLEOcusOGUTBTFVGoVdG`
+</ParamField>
+
+<ParamField path="VITE_AUTH0_AUDIENCE" type="string">
+  Auth0 API audience identifier (if using API authorization)
+</ParamField>
+
+## Environment Files
+
+### File Structure
+
+Create environment-specific files in your project root:
+
+```
+villa-buena-ecommerce/
+├── .env                 # Default environment variables (not in git)
+├── .env.local           # Local overrides (not in git)
+├── .env.development     # Development-specific variables
+├── .env.production      # Production-specific variables
+└── .env.example         # Template file (committed to git)
+```
+
+### Example Configuration
+
+Create a `.env` file in the project root:
+
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:3000/api
+
+# Auth0 Configuration (recommended for future use)
+# VITE_AUTH0_DOMAIN=dev-rafaelval.us.auth0.com
+# VITE_AUTH0_CLIENT_ID=your-client-id-here
+```
+
+<Tip>
+  Create a `.env.example` file with placeholder values and commit it to version control. This helps other developers know which variables they need to configure.
+</Tip>
+
+## Accessing Environment Variables
+
+### In Application Code
+
+Access environment variables using Vite's `import.meta.env` object:
+
+```javascript
+// src/services/api.js
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
+```
+
+### Built-in Vite Variables
+
+Vite provides several built-in environment variables:
+
+<ParamField path="import.meta.env.MODE" type="string">
+  The mode the app is running in (`development`, `production`, or custom modes)
+</ParamField>
+
+<ParamField path="import.meta.env.DEV" type="boolean">
+  Whether the app is running in development mode
+</ParamField>
+
+<ParamField path="import.meta.env.PROD" type="boolean">
+  Whether the app is running in production mode
+</ParamField>
+
+<ParamField path="import.meta.env.BASE_URL" type="string">
+  The base URL the app is being served from
+</ParamField>
+
+## Environment-Specific Configuration
+
+### Development Mode
+
+When running `npm run dev`, Vite loads:
+1. `.env` - Base configuration
+2. `.env.local` - Local overrides
+3. `.env.development` - Development-specific
+4. `.env.development.local` - Local development overrides
+
+### Production Mode
+
+When running `npm run build`, Vite loads:
+1. `.env` - Base configuration
+2. `.env.local` - Local overrides
+3. `.env.production` - Production-specific
+4. `.env.production.local` - Local production overrides
+
+<Warning>
+  Only variables prefixed with `VITE_` are embedded into the client bundle. Never expose secrets or API keys that should remain server-side.
+</Warning>
+
+## Best Practices
+
+<Steps>
+  <Step title="Use descriptive names">
+    Prefix all custom variables with `VITE_` and use clear, descriptive names.
+  </Step>
+
+  <Step title="Provide defaults">
+    Handle missing environment variables gracefully in your code:
+    
+    ```javascript
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+    ```
+  </Step>
+
+  <Step title="Document all variables">
+    Maintain a `.env.example` file with all required variables and their descriptions.
+  </Step>
+
+  <Step title="Validate on startup">
+    Consider adding validation to ensure all required environment variables are set:
+    
+    ```javascript
+    const requiredEnvVars = ['VITE_API_URL'];
+    
+    requiredEnvVars.forEach(varName => {
+      if (!import.meta.env[varName]) {
+        throw new Error(`Missing required environment variable: ${varName}`);
+      }
+    });
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Variables not loading
+
+- Ensure variables are prefixed with `VITE_`
+- Restart the dev server after changing `.env` files
+- Check that `.env` files are in the project root, not in subdirectories
+
+### Variables showing as undefined
+
+- Verify the variable name is spelled correctly
+- Make sure the `.env` file is not in `.gitignore` for required config files
+- Check that you're using `import.meta.env.VARIABLE_NAME`, not `process.env.VARIABLE_NAME`
+
+<Tip>
+  Use `console.log(import.meta.env)` during development to see all available environment variables.
+</Tip>

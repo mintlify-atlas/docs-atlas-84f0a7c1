@@ -1,0 +1,320 @@
+---
+title: 'Building for Production'
+description: 'Build and deploy Villa Buena E-Commerce for production environments'
+---
+
+## Build Process
+
+Villa Buena E-Commerce uses Vite as its build tool, which provides an optimized production build with code splitting, minification, and asset optimization.
+
+## Build Commands
+
+The following npm scripts are available for building and previewing the application:
+
+### Production Build
+
+```bash
+npm run build
+```
+
+This command executes `vite build` and performs the following optimizations:
+
+- Bundles JavaScript modules with Rollup
+- Minifies JavaScript and CSS
+- Optimizes and fingerprints assets for caching
+- Generates source maps for debugging
+- Code-splits for optimal loading performance
+- Tree-shakes unused code
+
+<Note>
+  The build output is generated in the `dist/` directory by default.
+</Note>
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+This command starts a local server to preview the production build:
+
+- Serves the `dist/` directory
+- Simulates production environment
+- Useful for testing before deployment
+
+<Warning>
+  The preview server is not designed for production deployment. Use a proper static file server or CDN for production.
+</Warning>
+
+## Build Configuration
+
+The build process is configured in `vite.config.js`:
+
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+})
+```
+
+### Current Configuration
+
+- **Plugin:** `@vitejs/plugin-react` for React Fast Refresh and JSX transformation
+- **Build Target:** Modern browsers (ES2020+)
+- **Output Directory:** `dist/` (Vite default)
+
+## Build Output Structure
+
+After running `npm run build`, the `dist/` directory will contain:
+
+```
+dist/
+├── index.html              # Main HTML file
+├── assets/
+│   ├── index-[hash].js    # Main JavaScript bundle
+│   ├── vendor-[hash].js   # Third-party dependencies
+│   ├── index-[hash].css   # Compiled CSS
+│   └── [images/fonts]     # Optimized static assets
+└── favicon.ico
+```
+
+<Tip>
+  Asset filenames include content hashes (e.g., `index-a3b2c1d4.js`) for effective browser caching and cache busting.
+</Tip>
+
+## Optimization Features
+
+### Automatic Code Splitting
+
+Vite automatically splits code based on:
+
+- **Dynamic imports:** Routes and components loaded on demand
+- **Vendor chunks:** Third-party dependencies bundled separately
+- **Common modules:** Shared code extracted to reduce duplication
+
+Given the project uses React Router DOM, route-based code splitting is recommended:
+
+```javascript
+import { lazy } from 'react';
+
+// Dynamic import for route components
+const ProductPage = lazy(() => import('./pages/ProductPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+```
+
+### Asset Optimization
+
+- **Images:** Automatically optimized and fingerprinted
+- **CSS:** Minified and purged of unused styles
+- **JavaScript:** Minified with terser
+- **Dependencies:** Analyzed for optimal chunking
+
+### Tree Shaking
+
+Vite's build process includes tree shaking to eliminate dead code:
+
+- Removes unused exports from modules
+- Optimizes bundle size
+- Works best with ES modules
+
+<Note>
+  The project uses `"type": "module"` in package.json, which ensures optimal tree shaking.
+</Note>
+
+## Environment-Specific Builds
+
+### Production Environment Variables
+
+Create a `.env.production` file for production-specific configuration:
+
+```bash
+VITE_API_URL=https://api.villabuena.com
+```
+
+These variables are embedded into the build at build time.
+
+### Build Modes
+
+Vite supports custom build modes:
+
+```bash
+# Build with staging environment
+vite build --mode staging
+
+# Build with custom configuration
+vite build --mode custom
+```
+
+Create corresponding `.env.staging` or `.env.custom` files for each mode.
+
+## Pre-Build Checklist
+
+<Steps>
+  <Step title="Run linting">
+    Ensure code quality before building:
+    
+    ```bash
+    npm run lint
+    ```
+    
+    Fix any ESLint errors or warnings.
+  </Step>
+
+  <Step title="Verify environment variables">
+    Check that all required environment variables are set in `.env.production`:
+    
+    - `VITE_API_URL` - Production API endpoint
+    - Any Auth0 variables if migrated to env vars
+  </Step>
+
+  <Step title="Test locally">
+    Run the development server and test all functionality:
+    
+    ```bash
+    npm run dev
+    ```
+  </Step>
+
+  <Step title="Build and preview">
+    Create a production build and preview it:
+    
+    ```bash
+    npm run build
+    npm run preview
+    ```
+    
+    Test critical user flows in the preview environment.
+  </Step>
+</Steps>
+
+## Build Optimization Tips
+
+### Analyze Bundle Size
+
+To analyze what's included in your build:
+
+```bash
+npm install --save-dev rollup-plugin-visualizer
+```
+
+Update `vite.config.js`:
+
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { visualizer } from 'rollup-plugin-visualizer'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    visualizer({ open: true })
+  ],
+})
+```
+
+### Lazy Load Routes
+
+Implement route-based code splitting for better performance:
+
+```javascript
+import { lazy, Suspense } from 'react';
+import { createBrowserRouter } from 'react-router-dom';
+
+const HomePage = lazy(() => import('./pages/HomePage'));
+const ProductPage = lazy(() => import('./pages/ProductPage'));
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Suspense fallback={<div>Loading...</div>}><HomePage /></Suspense>
+  },
+  // ... more routes
+]);
+```
+
+### Optimize Dependencies
+
+Consider the size of dependencies:
+
+- **Bootstrap 5.3.8** - Import only needed components
+- **Lucide React** - Use tree-shakeable imports: `import { ShoppingCart } from 'lucide-react'`
+
+## Deployment
+
+### Static File Hosting
+
+The `dist/` directory can be deployed to any static hosting service:
+
+<CardGroup cols={2}>
+  <Card title="Vercel" icon="triangle">
+    ```bash
+    npm install -g vercel
+    vercel --prod
+    ```
+  </Card>
+  
+  <Card title="Netlify" icon="diamond">
+    ```bash
+    npm install -g netlify-cli
+    netlify deploy --prod --dir=dist
+    ```
+  </Card>
+  
+  <Card title="AWS S3" icon="aws">
+    ```bash
+    aws s3 sync dist/ s3://your-bucket-name
+    ```
+  </Card>
+  
+  <Card title="GitHub Pages" icon="github">
+    Configure base path in vite.config.js and deploy dist/ to gh-pages branch
+  </Card>
+</CardGroup>
+
+### Server Configuration
+
+Since this is a Single Page Application (SPA) with client-side routing, configure your server to:
+
+1. **Serve index.html for all routes:**
+   ```nginx
+   # Nginx example
+   location / {
+     try_files $uri $uri/ /index.html;
+   }
+   ```
+
+2. **Set proper cache headers:**
+   - Long cache for hashed assets: `Cache-Control: max-age=31536000, immutable`
+   - No cache for index.html: `Cache-Control: no-cache`
+
+<Warning>
+  Always configure your server to redirect 404s to index.html for proper SPA routing with React Router.
+</Warning>
+
+## Troubleshooting
+
+### Build fails with memory errors
+
+Increase Node.js memory limit:
+
+```bash
+NODE_OPTIONS="--max-old-space-size=4096" npm run build
+```
+
+### Assets not loading after deployment
+
+- Check the base path configuration in `vite.config.js`
+- Verify asset paths are relative, not absolute
+- Ensure your CDN/server is serving all files from `dist/`
+
+### Environment variables not working
+
+- Rebuild after changing `.env.production`
+- Verify variables are prefixed with `VITE_`
+- Check that variables are accessed via `import.meta.env`, not `process.env`
+
+<Tip>
+  Run `npm run build` with `--debug` flag to see detailed build information and troubleshoot issues.
+</Tip>

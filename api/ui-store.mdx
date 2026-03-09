@@ -1,0 +1,467 @@
+---
+title: 'useUIStore'
+description: 'Zustand store for managing UI state including dark mode, cart drawer, and toast notifications'
+---
+
+## Overview
+
+The `useUIStore` is a Zustand store that manages global UI state across the application. It handles dark mode toggling, cart drawer visibility, and toast notifications. The store uses Zustand's persist middleware with partial persistence - only dark mode preference is saved to local storage.
+
+**Store Location:** `src/store/uiStore.js`
+
+## State Shape
+
+<ResponseField name="darkMode" type="boolean" default="false">
+  Current theme mode. `true` for dark mode, `false` for light mode.
+  
+  <Note>This field is persisted to local storage.</Note>
+</ResponseField>
+
+<ResponseField name="isCartOpen" type="boolean" default="false">
+  Whether the cart drawer is currently open.
+  
+  <Note>This field is NOT persisted - resets on page load.</Note>
+</ResponseField>
+
+<ResponseField name="toast" type="string | null" default="null">
+  Current toast message to display. `null` when no toast is shown.
+  
+  <Note>This field is NOT persisted - resets on page load.</Note>
+</ResponseField>
+
+<ResponseField name="toastKey" type="number" default="0">
+  Internal counter used to force re-render toast animations. Increments each time a new toast is shown.
+  
+  <Note>This field is NOT persisted.</Note>
+</ResponseField>
+
+## Methods
+
+### toggleDarkMode
+
+Toggles between light and dark mode.
+
+```javascript
+const toggleDarkMode = useUIStore((state) => state.toggleDarkMode);
+
+toggleDarkMode();
+```
+
+### openCart
+
+Opens the cart drawer/sidebar.
+
+```javascript
+const openCart = useUIStore((state) => state.openCart);
+
+openCart();
+```
+
+### closeCart
+
+Closes the cart drawer/sidebar.
+
+```javascript
+const closeCart = useUIStore((state) => state.closeCart);
+
+closeCart();
+```
+
+### showToast
+
+Displays a toast notification with the given message. Increments `toastKey` to trigger animations even for duplicate messages.
+
+<ParamField path="message" type="string" required>
+  The message to display in the toast notification
+</ParamField>
+
+```javascript
+const showToast = useUIStore((state) => state.showToast);
+
+showToast("Product added to cart!");
+showToast("Order placed successfully");
+```
+
+### hideToast
+
+Hides the currently displayed toast notification.
+
+```javascript
+const hideToast = useUIStore((state) => state.hideToast);
+
+hideToast();
+```
+
+## Usage Examples
+
+### Dark Mode Toggle
+
+<CodeGroup>
+```jsx Navbar.jsx
+import { useUIStore } from "../../store/uiStore";
+import { Sun, Moon } from "lucide-react";
+
+const Navbar = () => {
+  const { darkMode, toggleDarkMode } = useUIStore();
+
+  return (
+    <nav>
+      <button
+        onClick={toggleDarkMode}
+        aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
+    </nav>
+  );
+};
+```
+
+```jsx Layout.jsx
+import { useUIStore } from "../store/uiStore";
+import { useEffect } from "react";
+
+export const Layout = ({ children }) => {
+  const darkMode = useUIStore((state) => state.darkMode);
+
+  useEffect(() => {
+    // Apply dark mode class to document
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  return (
+    <div className={darkMode ? "dark-theme" : "light-theme"}>
+      {children}
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+### Cart Drawer
+
+<CodeGroup>
+```jsx CartDrawer.jsx
+import { useUIStore } from "../../store/uiStore";
+import { useCartStore } from "../../store/useCartStore";
+import { X } from "lucide-react";
+
+export const CartDrawer = () => {
+  const { isCartOpen, closeCart } = useUIStore();
+  const { cart, increaseQty, decreaseQty, removeFromCart } = useCartStore();
+
+  if (!isCartOpen) return null;
+
+  return (
+    <>
+      <div className="drawer-overlay" onClick={closeCart} />
+      <div className="drawer">
+        <div className="drawer-header">
+          <h2>Shopping Cart</h2>
+          <button onClick={closeCart}>
+            <X size={24} />
+          </button>
+        </div>
+        
+        <div className="drawer-content">
+          {cart.map((item) => (
+            <div key={item.id}>
+              <h3>{item.title}</h3>
+              <p>${item.price}</p>
+              <button onClick={() => decreaseQty(item.id)}>-</button>
+              <span>{item.qty}</span>
+              <button onClick={() => increaseQty(item.id)}>+</button>
+              <button onClick={() => removeFromCart(item.id)}>Remove</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
+```
+
+```jsx Navbar.jsx
+import { useUIStore } from "../../store/uiStore";
+import { useCartStore } from "../../store/useCartStore";
+import { ShoppingCart } from "lucide-react";
+
+const Navbar = () => {
+  const cart = useCartStore((state) => state.cart);
+  const { openCart } = useUIStore();
+
+  const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+
+  return (
+    <nav>
+      <button onClick={openCart} aria-label="Shopping cart">
+        <ShoppingCart size={20} />
+        {totalItems > 0 && (
+          <span className="badge">{totalItems}</span>
+        )}
+      </button>
+    </nav>
+  );
+};
+```
+</CodeGroup>
+
+### Toast Notifications
+
+<CodeGroup>
+```jsx Toast.jsx
+import { useUIStore } from "../../store/uiStore";
+import { useEffect } from "react";
+
+export const Toast = () => {
+  const toast = useUIStore((state) => state.toast);
+  const hideToast = useUIStore((state) => state.hideToast);
+  const toastKey = useUIStore((state) => state.toastKey);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        hideToast();
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [toast, toastKey, hideToast]);
+
+  if (!toast) return null;
+
+  return (
+    <div className="toast" key={toastKey}>
+      {toast}
+    </div>
+  );
+};
+```
+
+```jsx ProductCard.jsx
+import { useCartStore } from "../../store/useCartStore";
+import { useUIStore } from "../../store/uiStore";
+
+export const ProductCard = ({ product }) => {
+  const addToCart = useCartStore((state) => state.addToCart);
+  const showToast = useUIStore((state) => state.showToast);
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    showToast(`${product.title} added to cart`);
+  };
+
+  return (
+    <div>
+      <img src={product.thumbnail} alt={product.title} />
+      <h3>{product.title}</h3>
+      <p>${product.price}</p>
+      <button onClick={handleAddToCart}>Add to Cart</button>
+    </div>
+  );
+};
+```
+
+```jsx ProductDetail.jsx
+import { useUIStore } from "../../store/uiStore";
+import { useCartStore } from "../../store/useCartStore";
+
+export const ProductDetail = ({ product }) => {
+  const addToCart = useCartStore((state) => state.addToCart);
+  const showToast = useUIStore((state) => state.showToast);
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    showToast("Added to cart!");
+  };
+
+  return (
+    <div>
+      <h1>{product.title}</h1>
+      <button onClick={handleAddToCart}>Add to Cart</button>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Local Storage
+
+<Note>
+  The UI store uses **partial persistence** - only the `darkMode` setting is saved to local storage with the key **`ui-storage`**. Cart drawer state and toast messages are intentionally not persisted.
+</Note>
+
+### Storage Structure
+
+```json
+{
+  "state": {
+    "darkMode": true
+  },
+  "version": 0
+}
+```
+
+### Partialize Configuration
+
+The store uses Zustand's `partialize` option to control what gets persisted:
+
+```javascript
+{
+  name: "ui-storage",
+  partialize: (state) => ({
+    darkMode: state.darkMode,
+  }),
+}
+```
+
+This ensures that:
+- ✅ `darkMode` preference persists across sessions
+- ❌ `isCartOpen` resets to `false` on page load
+- ❌ `toast` and `toastKey` reset on page load
+
+## Toast Key Pattern
+
+The `toastKey` field is used to ensure toast animations trigger even when showing the same message twice:
+
+```javascript
+showToast: (message) => {
+  set((state) => ({
+    toast: message,
+    toastKey: state.toastKey + 1,  // Forces re-render
+  }));
+}
+```
+
+This is useful in React components that use the `key` prop:
+
+```jsx
+<div className="toast" key={toastKey}>
+  {toast}
+</div>
+```
+
+Each time `toastKey` changes, React will unmount and remount the toast component, retriggering animations.
+
+## Best Practices
+
+1. **Selector Optimization**: Use specific selectors to avoid unnecessary re-renders
+   ```javascript
+   // Good - only re-renders when darkMode changes
+   const darkMode = useUIStore((state) => state.darkMode);
+   
+   // Good - only re-renders when toast changes
+   const toast = useUIStore((state) => state.toast);
+   
+   // Avoid - re-renders on any UI state change
+   const uiState = useUIStore();
+   ```
+
+2. **Auto-hide Toasts**: Always set a timeout to automatically hide toasts
+   ```javascript
+   useEffect(() => {
+     if (toast) {
+       const timer = setTimeout(() => {
+         hideToast();
+       }, 3000);
+       return () => clearTimeout(timer);
+     }
+   }, [toast, toastKey]);
+   ```
+
+3. **Close Drawer on Navigation**: Close the cart drawer when navigating to cart page
+   ```javascript
+   const navigate = useNavigate();
+   const closeCart = useUIStore((state) => state.closeCart);
+   
+   const goToCart = () => {
+     closeCart();
+     navigate("/cart");
+   };
+   ```
+
+4. **Dark Mode CSS Variables**: Use CSS variables for theming
+   ```css
+   :root {
+     --bg-color: #ffffff;
+     --text-color: #000000;
+   }
+   
+   .dark-theme {
+     --bg-color: #1a1a1a;
+     --text-color: #ffffff;
+   }
+   ```
+
+5. **Accessibility**: Ensure dark mode toggle has proper ARIA labels
+   ```jsx
+   <button
+     onClick={toggleDarkMode}
+     aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+   >
+     {darkMode ? <Sun /> : <Moon />}
+   </button>
+   ```
+
+## Common Patterns
+
+### Combine Multiple UI States
+
+```jsx
+const Navbar = () => {
+  const { darkMode, toggleDarkMode, openCart } = useUIStore();
+  const cart = useCartStore((state) => state.cart);
+
+  return (
+    <nav>
+      <button onClick={toggleDarkMode}>
+        {darkMode ? "☀️" : "🌙"}
+      </button>
+      <button onClick={openCart}>
+        Cart ({cart.length})
+      </button>
+    </nav>
+  );
+};
+```
+
+### Toast with Actions
+
+```jsx
+const showSuccessToast = () => {
+  const showToast = useUIStore.getState().showToast;
+  showToast("Product added to cart!");
+};
+
+// Call outside of React component
+showSuccessToast();
+```
+
+### Drawer with Backdrop Click
+
+```jsx
+export const CartDrawer = () => {
+  const { isCartOpen, closeCart } = useUIStore();
+
+  return (
+    <>
+      {isCartOpen && (
+        <>
+          <div 
+            className="overlay" 
+            onClick={closeCart}
+            aria-hidden="true"
+          />
+          <div className="drawer">
+            {/* Drawer content */}
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+```

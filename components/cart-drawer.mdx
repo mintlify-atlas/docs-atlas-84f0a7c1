@@ -1,0 +1,223 @@
+---
+title: 'CartDrawer'
+description: 'Slide-out shopping cart with item management'
+icon: 'cart-shopping'
+---
+
+## Overview
+
+The `CartDrawer` component is a slide-out panel that displays cart items, allows quantity adjustments, and provides checkout navigation. It includes an overlay that closes the drawer when clicked.
+
+## Props
+
+This component does not accept props. It retrieves its state from Zustand stores:
+
+- `useUIStore` - Controls drawer open/close state
+- `useCartStore` - Manages cart items and operations
+
+## Usage
+
+<CodeGroup>
+```jsx Basic Setup
+import { CartDrawer } from "../components/cart/CartDrawer";
+
+function Layout() {
+  return (
+    <>
+      <Navbar />
+      <CartDrawer />
+      <Outlet />
+    </>
+  );
+}
+```
+
+```jsx Opening the Cart
+import { useUIStore } from "../store/uiStore";
+
+function Header() {
+  const openCart = useUIStore((state) => state.openCart);
+  
+  return (
+    <button onClick={openCart}>
+      Open Cart
+    </button>
+  );
+}
+```
+</CodeGroup>
+
+## Features
+
+### Cart Item Management
+
+The drawer provides full cart item control:
+
+```jsx src/components/cart/CartDrawer.jsx:10
+const { cart, increaseQty, decreaseQty, removeFromCart } = useCartStore();
+```
+
+#### Quantity Controls
+
+```jsx src/components/cart/CartDrawer.jsx:54-59
+<div className="qty-controls">
+  <button onClick={() => decreaseQty(item.id)}>
+    <Minus size={20}/>
+  </button>
+  <span>{item.qty}</span>
+  <button onClick={() => increaseQty(item.id)}>
+    <Plus size={20}/>
+  </button>
+</div>
+```
+
+#### Remove Item
+
+```jsx src/components/cart/CartDrawer.jsx:61-66
+<button
+  className="remove-btn"
+  onClick={() => removeFromCart(item.id)}
+>
+  <Trash2 size={20}/>
+</button>
+```
+
+### Cart Calculations
+
+The component automatically calculates totals:
+
+```jsx src/components/cart/CartDrawer.jsx:14-16
+const total = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+```
+
+### Navigation Actions
+
+<CodeGroup>
+```jsx Checkout Button
+<button
+  className="checkout-btn"
+  disabled={cart.length === 0}
+  onClick={() => {
+    closeCart();
+    navigate("/checkout/shipping");
+  }}
+>
+  Checkout
+</button>
+```
+
+```jsx View Cart Button
+<button
+  className="view-cart-btn"
+  onClick={() => {
+    closeCart();
+    navigate("/cart");
+  }}
+>
+  View Cart
+</button>
+```
+</CodeGroup>
+
+### Overlay & Close Behavior
+
+The drawer includes a backdrop overlay that closes the drawer when clicked:
+
+```jsx src/components/cart/CartDrawer.jsx:21-24
+<div
+  className={`cart-overlay ${isCartOpen ? "open" : ""}`}
+  onClick={closeCart}
+/>
+```
+
+## Structure
+
+The CartDrawer consists of three main sections:
+
+### 1. Header
+```jsx
+<div className="cart-header">
+  <h5>Shopping Cart ({totalItems})</h5>
+  <button onClick={closeCart} className="cart-close">
+    <X size={20} />
+  </button>
+</div>
+```
+
+### 2. Items List
+```jsx
+<div className="cart-items">
+  {cart.length === 0 && (
+    <div className="cart-empty">Your cart is empty</div>
+  )}
+  
+  {cart.map((item) => (
+    <div key={item.id} className="cart-item">
+      {/* Item details and controls */}
+    </div>
+  ))}
+</div>
+```
+
+### 3. Footer with Total & Actions
+```jsx
+<div className="cart-footer">
+  <div className="cart-total">
+    <span>Total</span>
+    <span>${total.toFixed(2)}</span>
+  </div>
+  <button className="checkout-btn">Checkout</button>
+  <button className="view-cart-btn">View Cart</button>
+</div>
+```
+
+## Empty State
+
+When the cart is empty, a message is displayed:
+
+```jsx src/components/cart/CartDrawer.jsx:41-43
+{cart.length === 0 && (
+  <div className="cart-empty">Your cart is empty</div>
+)}
+```
+
+<Note>
+The checkout button is automatically disabled when the cart is empty to prevent navigation to checkout with no items.
+</Note>
+
+## Styling
+
+The component uses these CSS classes from `CartDrawer.css`:
+
+- `.cart-overlay` - Semi-transparent backdrop
+- `.cart-drawer` - Slide-out panel container
+- `.cart-header` - Top section with title and close button
+- `.cart-items` - Scrollable items container
+- `.cart-item` - Individual item card
+- `.cart-footer` - Bottom section with total and buttons
+- `.qty-controls` - Quantity adjustment buttons
+
+<Tip>
+The drawer state is global, so you can trigger it from anywhere in your app using the `openCart()` function from `useUIStore`.
+</Tip>
+
+## Real-World Integration
+
+```jsx app/Layout.jsx
+import { Outlet } from "react-router-dom";
+import Navbar from "../components/navbar/Navbar";
+import { CartDrawer } from "../components/cart/CartDrawer";
+import Toast from "../components/toast/Toast";
+
+export const Layout = () => {
+  return (
+    <>
+      <Toast />
+      <Navbar />
+      <CartDrawer />
+      <Outlet />
+    </>
+  );
+};
+```

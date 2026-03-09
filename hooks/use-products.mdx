@@ -1,0 +1,187 @@
+---
+title: 'useProducts'
+description: 'React Query hook for fetching all products from the API'
+icon: 'box'
+---
+
+## Overview
+
+The `useProducts` hook is a React Query wrapper that fetches all products from the e-commerce API. It handles caching, loading states, and automatic refetching.
+
+**Source:** `src/hooks/useProducts.js:5`
+
+## Function Signature
+
+```javascript
+export const useProducts = () => {
+  return useQuery({
+    queryKey: ["products"],
+    queryFn: productService.getAll,
+  });
+};
+```
+
+## Parameters
+
+This hook takes no parameters.
+
+## Return Value
+
+Returns a [React Query](https://tanstack.com/query/latest) result object with the following properties:
+
+<ResponseField name="data" type="object">
+  Product data returned from the API
+  
+  <ResponseField name="products" type="array">
+    Array of product objects (up to 200 products)
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  `true` when the initial data is being fetched
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  `true` if an error occurred during fetching
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the request failed
+</ResponseField>
+
+<ResponseField name="refetch" type="function">
+  Function to manually refetch the products data
+</ResponseField>
+
+## Usage Example
+
+<CodeGroup>
+
+```jsx Home.jsx
+import { useProducts } from "../hooks/useProducts";
+import ProductCard from "../components/productCard/ProductCard";
+import SkeletonCard from "../components/SkeletonCard";
+
+export const Home = () => {
+  const {
+    data: productsData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useProducts();
+
+  const products = productsData?.products || [];
+
+  if (isLoading) {
+    return (
+      <div className="row g-4">
+        {Array.from({ length: 12 }).map((_, index) => (
+          <SkeletonCard key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="alert text-center">
+        <h5>⚠️ Error loading products</h5>
+        <p>{error?.message || "Something went wrong."}</p>
+        <button onClick={() => refetch()}>Try Again</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="row g-4">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
+};
+```
+
+```jsx Filtering Products
+import { useProducts } from "../hooks/useProducts";
+import { useMemo } from "react";
+
+const ProductList = ({ category, searchTerm }) => {
+  const { data: productsData, isLoading } = useProducts();
+
+  const filteredProducts = useMemo(() => {
+    const products = productsData?.products || [];
+    let filtered = [...products];
+
+    if (category) {
+      filtered = filtered.filter((p) => p.category === category);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter((p) =>
+        p.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [productsData, category, searchTerm]);
+
+  return (
+    <div>
+      {filteredProducts.map((product) => (
+        <div key={product.id}>{product.title}</div>
+      ))}
+    </div>
+  );
+};
+```
+
+</CodeGroup>
+
+## API Service
+
+The hook uses `productService.getAll()` which makes a GET request to `/products?limit=200`.
+
+**Source:** `src/services/productService.js:4`
+
+## Caching
+
+<Note>
+  Products are cached with the query key `["products"]`. React Query automatically:
+  - Caches the response
+  - Deduplicates requests
+  - Refetches stale data in the background
+  - Shares data across components
+</Note>
+
+## Related Hooks
+
+- [useProduct](/hooks/use-product) - Fetch a single product by ID
+- [useProductsByCategory](/hooks/use-products#useproductsbycategory) - Fetch products filtered by category
+
+## useProductsByCategory
+
+The same file also exports `useProductsByCategory` for fetching products filtered by category:
+
+```javascript
+export const useProductsByCategory = (category) => {
+  return useQuery({
+    queryKey: ["products", "category", category],
+    queryFn: () => productService.getByCategory(category),
+    enabled: !!category,
+  });
+};
+```
+
+### Parameters
+
+<ParamField path="category" type="string" required>
+  The category slug to filter products by
+</ParamField>
+
+### Behavior
+
+<Note>
+  The query is disabled when `category` is empty or undefined (via `enabled: !!category`)
+</Note>

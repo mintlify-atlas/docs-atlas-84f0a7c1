@@ -1,0 +1,215 @@
+---
+title: 'CheckoutStepper'
+description: 'Visual progress indicator for multi-step checkout process'
+icon: 'timeline'
+---
+
+## Overview
+
+The `CheckoutStepper` component displays a visual progress indicator for the three-step checkout process: Cart, Shipping, and Payment. It shows which step is active, which are completed, and provides clear visual feedback.
+
+## Props
+
+<ParamField path="step" type="number" required>
+  Current checkout step (1, 2, or 3)
+  
+  - `1` - Cart
+  - `2` - Shipping
+  - `3` - Payment
+</ParamField>
+
+## Usage
+
+<CodeGroup>
+```jsx Cart Page (Step 1)
+import { CheckoutStepper } from "../../components/checkoutStepper/CheckoutStepper";
+
+export const Cart = () => {
+  return (
+    <div className="container cart-container">
+      <CheckoutStepper step={1} />
+      {/* Cart content */}
+    </div>
+  );
+};
+```
+
+```jsx Shipping Page (Step 2)
+import { CheckoutStepper } from "../../components/checkoutStepper/CheckoutStepper";
+
+export const CheckoutShipping = () => {
+  return (
+    <div className="container shipping-container">
+      <CheckoutStepper step={2} />
+      {/* Shipping form */}
+    </div>
+  );
+};
+```
+
+```jsx Payment Page (Step 3)
+import { CheckoutStepper } from "../../components/checkoutStepper/CheckoutStepper";
+
+export const CheckoutPayment = () => {
+  return (
+    <div className="container">
+      <CheckoutStepper step={3} />
+      {/* Payment form */}
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Features
+
+### Step States
+
+The component automatically determines each step's state:
+
+```jsx src/components/checkoutStepper/CheckoutStepper.jsx:9-12
+const current = index + 1;
+const isActive = step === current;
+const isCompleted = step > current;
+```
+
+- **Active**: The current step (highlighted)
+- **Completed**: Steps before the current one (shows checkmark)
+- **Upcoming**: Steps after the current one (grayed out)
+
+### Step Labels
+
+Three predefined steps:
+
+```jsx src/components/checkoutStepper/CheckoutStepper.jsx:4
+const steps = ["Cart", "Shipping", "Payment"];
+```
+
+### Visual Indicators
+
+Each step displays either a number or checkmark:
+
+```jsx src/components/checkoutStepper/CheckoutStepper.jsx:19-21
+<div className="step-circle">
+  {isCompleted ? '✓' : current}
+</div>
+```
+
+## Component Structure
+
+```jsx src/components/checkoutStepper/CheckoutStepper.jsx:7-27
+<div className="checkout-stepper" data-step={step}>
+  <div className="d-flex justify-content-between">
+    {steps.map((label, index) => {
+      const current = index + 1;
+      const isActive = step === current;
+      const isCompleted = step > current;
+      
+      return (
+        <div
+          key={label}
+          className={`step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+        >
+          <div className="step-circle">
+            {isCompleted ? '✓' : current}
+          </div>
+          <span className="step-label">{label}</span>
+        </div>
+      );
+    })}
+  </div>
+</div>
+```
+
+## Styling
+
+The component uses these CSS classes from `CheckoutStepper.css`:
+
+- `.checkout-stepper` - Main container
+- `.step` - Individual step container
+- `.step.active` - Active step styling (highlighted)
+- `.step.completed` - Completed step styling (checkmark, different color)
+- `.step-circle` - Circular indicator for number/checkmark
+- `.step-label` - Text label below the circle
+
+## Data Attribute
+
+The component adds a data attribute for custom styling:
+
+```jsx src/components/checkoutStepper/CheckoutStepper.jsx:7
+<div className="checkout-stepper" data-step={step}>
+```
+
+This allows CSS to target specific steps:
+```css
+.checkout-stepper[data-step="1"] { /* Cart styles */ }
+.checkout-stepper[data-step="2"] { /* Shipping styles */ }
+.checkout-stepper[data-step="3"] { /* Payment styles */ }
+```
+
+## Real-World Example
+
+From the Cart page:
+
+```jsx pages/cart/Cart.jsx
+import { CheckoutStepper } from "../../components/checkoutStepper/CheckoutStepper";
+import { useCartStore } from "../../store/useCartStore";
+import { useNavigate } from "react-router-dom";
+
+export const Cart = () => {
+  const { cart } = useCartStore();
+  const navigate = useNavigate();
+
+  if (cart.length === 0) {
+    return (
+      <div className="container py-5">
+        <div className="cart-empty-container">
+          <h3>Your cart is empty</h3>
+          <button onClick={() => navigate("/")}>
+            Go Shopping
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container cart-container">
+      <CheckoutStepper step={1} />
+      <h2 className="cart-title">Shopping Cart</h2>
+      {/* Cart items */}
+    </div>
+  );
+};
+```
+
+## Visual States Examples
+
+### Step 1 (Cart)
+```
+[1] Cart (active)
+ 2  Shipping
+ 3  Payment
+```
+
+### Step 2 (Shipping)
+```
+[✓] Cart (completed)
+[2] Shipping (active)
+ 3  Payment
+```
+
+### Step 3 (Payment)
+```
+[✓] Cart (completed)
+[✓] Shipping (completed)
+[3] Payment (active)
+```
+
+<Note>
+The stepper is a visual indicator only and does not handle navigation. Navigation between steps is managed by the parent pages.
+</Note>
+
+<Tip>
+Place the CheckoutStepper at the top of each checkout page for consistent user experience and clear progress indication.
+</Tip>

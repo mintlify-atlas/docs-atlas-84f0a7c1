@@ -1,0 +1,472 @@
+---
+title: 'useUserStore'
+description: 'Zustand store for managing user checkout data, shipping/payment information, and order history'
+---
+
+## Overview
+
+The `useUserStore` is a Zustand store that manages user-related state including shipping information, payment details, and order history. It integrates with Auth0 to hydrate user data and persists all data to local storage under the key `user-checkout-storage`.
+
+**Store Location:** `src/store/useUserStore.js`
+
+## State Shape
+
+<ResponseField name="shipping" type="object" required>
+  Shipping information for the current user
+  
+  <expandable title="Shipping Object Structure">
+    <ResponseField name="fullName" type="string">
+      Customer's full name
+    </ResponseField>
+    <ResponseField name="address" type="string">
+      Shipping address
+    </ResponseField>
+    <ResponseField name="city" type="string">
+      City for delivery
+    </ResponseField>
+  </expandable>
+</ResponseField>
+
+<ResponseField name="payment" type="object" required>
+  Payment method information
+  
+  <expandable title="Payment Object Structure">
+    <ResponseField name="cardNumber" type="string">
+      Credit card number
+    </ResponseField>
+    <ResponseField name="expiryDate" type="string">
+      Card expiry date
+    </ResponseField>
+    <ResponseField name="cvc" type="string">
+      Card security code
+    </ResponseField>
+  </expandable>
+</ResponseField>
+
+<ResponseField name="orders" type="array" required>
+  Array of completed orders. Each order contains items, total, and timestamp.
+</ResponseField>
+
+## Methods
+
+### setShipping
+
+Updates shipping information. Merges new data with existing shipping state.
+
+<ParamField path="data" type="object" required>
+  Partial shipping object with fields to update. Can include `fullName`, `address`, and/or `city`.
+</ParamField>
+
+```javascript
+const setShipping = useUserStore((state) => state.setShipping);
+
+setShipping({
+  fullName: "John Doe",
+  address: "123 Main St",
+  city: "San Francisco"
+});
+
+// Partial updates are supported
+setShipping({ city: "Los Angeles" });
+```
+
+### setPayment
+
+Updates payment information. Merges new data with existing payment state.
+
+<ParamField path="data" type="object" required>
+  Partial payment object with fields to update. Can include `cardNumber`, `expiryDate`, and/or `cvc`.
+</ParamField>
+
+```javascript
+const setPayment = useUserStore((state) => state.setPayment);
+
+setPayment({
+  cardNumber: "4111111111111111",
+  expiryDate: "12/25",
+  cvc: "123"
+});
+```
+
+### hydrateFromAuth0
+
+Populates user data from Auth0 user object. Currently hydrates the `fullName` field from Auth0's `name` property if shipping name is empty.
+
+<ParamField path="user" type="object" required>
+  Auth0 user object containing user profile information
+</ParamField>
+
+```javascript
+const hydrateFromAuth0 = useUserStore((state) => state.hydrateFromAuth0);
+const { user } = useAuth0();
+
+// Usually called in useEffect
+useEffect(() => {
+  if (user) {
+    hydrateFromAuth0(user);
+  }
+}, [user]);
+```
+
+### addOrder
+
+Adds a completed order to the order history.
+
+<ParamField path="order" type="object" required>
+  Order object containing order details, items, total, and timestamp
+</ParamField>
+
+```javascript
+const addOrder = useUserStore((state) => state.addOrder);
+
+addOrder({
+  id: Date.now(),
+  items: cart,
+  total: 299.99,
+  date: new Date().toISOString(),
+  shipping: { /* shipping info */ },
+  payment: { /* payment info */ }
+});
+```
+
+## Usage Examples
+
+### Checkout Shipping Form
+
+<CodeGroup>
+```jsx CheckoutShipping.jsx
+import { useUserStore } from "../../store/useUserStore";
+import { useAuth0 } from "@auth0/auth0-react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+export const CheckoutShipping = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth0();
+
+  const shipping = useUserStore((state) => state.shipping);
+  const setShipping = useUserStore((state) => state.setShipping);
+  const hydrateFromAuth0 = useUserStore((state) => state.hydrateFromAuth0);
+
+  // Hydrate user data from Auth0
+  useEffect(() => {
+    if (user) {
+      hydrateFromAuth0(user);
+    }
+  }, [user]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setShipping({ [name]: value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    navigate("/checkout/payment");
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        name="fullName"
+        placeholder="Full name"
+        value={shipping.fullName}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="address"
+        placeholder="Address"
+        value={shipping.address}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="city"
+        placeholder="City"
+        value={shipping.city}
+        onChange={handleChange}
+        required
+      />
+      <button type="submit">Continue to Payment</button>
+    </form>
+  );
+};
+```
+
+```jsx CheckoutPayment.jsx
+import { useUserStore } from "../../store/useUserStore";
+import { useCartStore } from "../../store/useCartStore";
+import { useNavigate } from "react-router-dom";
+
+export const CheckoutPayment = () => {
+  const navigate = useNavigate();
+  
+  const payment = useUserStore((state) => state.payment);
+  const setPayment = useUserStore((state) => state.setPayment);
+  const addOrder = useUserStore((state) => state.addOrder);
+  
+  const cart = useCartStore((state) => state.cart);
+  const clearCart = useCartStore((state) => state.clearCart);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setPayment({ [name]: value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    const order = {
+      id: Date.now(),
+      items: cart,
+      total: cart.reduce((acc, item) => acc + item.price * item.qty, 0),
+      date: new Date().toISOString()
+    };
+    
+    addOrder(order);
+    clearCart();
+    navigate("/order-confirmation");
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        name="cardNumber"
+        placeholder="Card Number"
+        value={payment.cardNumber}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="expiryDate"
+        placeholder="MM/YY"
+        value={payment.expiryDate}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="cvc"
+        placeholder="CVC"
+        value={payment.cvc}
+        onChange={handleChange}
+        required
+      />
+      <button type="submit">Place Order</button>
+    </form>
+  );
+};
+```
+</CodeGroup>
+
+### Account Management
+
+<CodeGroup>
+```jsx AccountPage.jsx
+import { useUserStore } from "../../store/useUserStore";
+import { useState } from "react";
+
+export const AccountPage = () => {
+  const shipping = useUserStore((state) => state.shipping);
+  const setShipping = useUserStore((state) => state.setShipping);
+  const payment = useUserStore((state) => state.payment);
+  const setPayment = useUserStore((state) => state.setPayment);
+
+  const [editMode, setEditMode] = useState(false);
+
+  const handleShippingChange = (e) => {
+    const { name, value } = e.target;
+    setShipping({ [name]: value });
+  };
+
+  const handlePaymentChange = (e) => {
+    const { name, value } = e.target;
+    setPayment({ [name]: value });
+  };
+
+  return (
+    <div>
+      <h2>Account Information</h2>
+      
+      <section>
+        <h3>Shipping Address</h3>
+        <input
+          name="fullName"
+          value={shipping.fullName}
+          onChange={handleShippingChange}
+          disabled={!editMode}
+        />
+        <input
+          name="address"
+          value={shipping.address}
+          onChange={handleShippingChange}
+          disabled={!editMode}
+        />
+        <input
+          name="city"
+          value={shipping.city}
+          onChange={handleShippingChange}
+          disabled={!editMode}
+        />
+      </section>
+
+      <section>
+        <h3>Payment Method</h3>
+        <input
+          name="cardNumber"
+          value={payment.cardNumber}
+          onChange={handlePaymentChange}
+          disabled={!editMode}
+        />
+      </section>
+
+      <button onClick={() => setEditMode(!editMode)}>
+        {editMode ? "Save" : "Edit"}
+      </button>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+### Order History
+
+<CodeGroup>
+```jsx OrderHistory.jsx
+import { useUserStore } from "../../store/useUserStore";
+
+export const OrderHistory = () => {
+  const orders = useUserStore((state) => state.orders);
+
+  if (orders.length === 0) {
+    return <p>No orders yet</p>;
+  }
+
+  return (
+    <div>
+      <h2>Order History</h2>
+      {orders.map((order) => (
+        <div key={order.id}>
+          <h3>Order #{order.id}</h3>
+          <p>Date: {new Date(order.date).toLocaleDateString()}</p>
+          <p>Total: ${order.total.toFixed(2)}</p>
+          <ul>
+            {order.items.map((item) => (
+              <li key={item.id}>
+                {item.title} x {item.qty} - ${(item.price * item.qty).toFixed(2)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Local Storage
+
+<Note>
+  The user store is persisted to local storage with the key **`user-checkout-storage`**. This allows shipping, payment, and order data to persist across sessions.
+</Note>
+
+### Storage Structure
+
+```json
+{
+  "state": {
+    "shipping": {
+      "fullName": "John Doe",
+      "address": "123 Main St",
+      "city": "San Francisco"
+    },
+    "payment": {
+      "cardNumber": "4111111111111111",
+      "expiryDate": "12/25",
+      "cvc": "123"
+    },
+    "orders": [
+      {
+        "id": 1678901234567,
+        "items": [...],
+        "total": 299.99,
+        "date": "2025-03-09T10:30:00.000Z"
+      }
+    ]
+  },
+  "version": 0
+}
+```
+
+### Clearing User Data
+
+<Note>
+  When a user logs out, it's important to clear the persisted user data from local storage to ensure privacy and prevent data leakage between accounts.
+</Note>
+
+```javascript
+const logout = () => {
+  localStorage.removeItem("user-checkout-storage");
+  auth0Logout({ logoutParams: { returnTo: window.location.origin } });
+};
+```
+
+## Integration with Auth0
+
+The store integrates with Auth0 through the `hydrateFromAuth0` method:
+
+```javascript
+import { useAuth0 } from "@auth0/auth0-react";
+import { useUserStore } from "../../store/useUserStore";
+import { useEffect } from "react";
+
+function MyComponent() {
+  const { user } = useAuth0();
+  const hydrateFromAuth0 = useUserStore((state) => state.hydrateFromAuth0);
+
+  useEffect(() => {
+    if (user) {
+      hydrateFromAuth0(user);
+    }
+  }, [user, hydrateFromAuth0]);
+
+  // Component implementation
+}
+```
+
+## Best Practices
+
+1. **Partial Updates**: Both `setShipping` and `setPayment` support partial updates
+   ```javascript
+   // Only update the city
+   setShipping({ city: "New York" });
+   
+   // Only update card number
+   setPayment({ cardNumber: "4111111111111111" });
+   ```
+
+2. **Selector Optimization**: Use specific selectors to prevent unnecessary re-renders
+   ```javascript
+   // Good - only re-renders when shipping changes
+   const shipping = useUserStore((state) => state.shipping);
+   
+   // Good - only re-renders when specific field changes
+   const fullName = useUserStore((state) => state.shipping.fullName);
+   ```
+
+3. **Clear Sensitive Data**: Always clear payment and user data on logout
+   ```javascript
+   localStorage.removeItem("user-checkout-storage");
+   ```
+
+4. **Validate Before Storing**: Validate payment data before persisting
+   ```javascript
+   const handleSubmit = (e) => {
+     e.preventDefault();
+     if (validatePaymentData(payment)) {
+       setPayment(payment);
+       // Proceed with checkout
+     }
+   };
+   ```

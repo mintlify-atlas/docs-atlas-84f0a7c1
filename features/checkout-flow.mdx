@@ -1,0 +1,487 @@
+---
+title: 'Checkout Flow'
+description: 'Complete multi-step checkout process with shipping and payment information'
+icon: 'credit-card'
+---
+
+The checkout flow guides users through a streamlined three-step process to complete their purchase, with visual progress tracking and order summary at each stage.
+
+## Overview
+
+The checkout process consists of three distinct steps:
+
+<Steps>
+  <Step title="Shopping Cart">
+    Review items and quantities before proceeding
+  </Step>
+  <Step title="Shipping Information">
+    Enter delivery address and contact details
+  </Step>
+  <Step title="Payment">
+    Provide payment method and complete purchase
+  </Step>
+</Steps>
+
+## Checkout Stepper Component
+
+All checkout pages include a visual progress indicator:
+
+```jsx src/pages/cart/Cart.jsx
+<CheckoutStepper step={1} />
+```
+
+<Info>
+  The stepper highlights the current step and shows completed/upcoming steps, helping users understand their position in the checkout flow.
+</Info>
+
+## Step 1: Shopping Cart
+
+Covered in detail in the [Shopping Cart](/features/shopping-cart) documentation.
+
+Key actions:
+- Review all cart items
+- Adjust quantities or remove items
+- View order summary with totals
+- Click "Proceed to Checkout" to continue
+
+## Step 2: Shipping Information
+
+### Page Overview
+
+The shipping page collects delivery information with a clean form interface:
+
+```jsx src/pages/checkoutShipping/CheckoutShipping.jsx
+export const CheckoutShipping = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth0();
+
+  const shipping = useUserStore((state) => state.shipping);
+  const setShipping = useUserStore((state) => state.setShipping);
+  const hydrateFromAuth0 = useUserStore((state) => state.hydrateFromAuth0);
+
+  useEffect(() => {
+    if (user) {
+      hydrateFromAuth0(user);
+    }
+  }, [user]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    navigate("/checkout/payment");
+  };
+
+  return (
+    <div className="container shipping-container">
+      <CheckoutStepper step={2} />
+      <h2>Shipping Information</h2>
+      {/* Form content */}
+    </div>
+  );
+};
+```
+
+### Form Fields
+
+<CardGroup cols={3}>
+  <Card title="Full Name" icon="user">
+    Customer's complete name for delivery
+  </Card>
+  <Card title="Address" icon="location-dot">
+    Street address for shipment
+  </Card>
+  <Card title="City" icon="city">
+    City for delivery location
+  </Card>
+</CardGroup>
+
+### State Management
+
+Shipping data is stored in the user store with persistence:
+
+```javascript src/store/useUserStore.js
+shipping: {
+  fullName: "",
+  address: "",
+  city: "",
+},
+
+setShipping: (data) =>
+  set((state) => ({
+    shipping: { ...state.shipping, ...data },
+  }))
+```
+
+### Form Handling
+
+```jsx src/pages/checkoutShipping/CheckoutShipping.jsx
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setShipping({ [name]: value });
+};
+
+<form onSubmit={handleSubmit}>
+  <input
+    name="fullName"
+    placeholder="Full name"
+    value={shipping.fullName}
+    onChange={handleChange}
+    required
+  />
+
+  <input
+    name="address"
+    placeholder="Address"
+    value={shipping.address}
+    onChange={handleChange}
+    required
+  />
+
+  <input
+    name="city"
+    placeholder="City"
+    value={shipping.city}
+    onChange={handleChange}
+    required
+  />
+
+  <button type="submit">
+    Continue to Payment
+  </button>
+</form>
+```
+
+### Auth0 Integration
+
+<Note>
+  If the user is authenticated via Auth0, their name is automatically populated in the Full Name field.
+</Note>
+
+```javascript src/store/useUserStore.js
+hydrateFromAuth0: (user) =>
+  set((state) => ({
+    shipping: {
+      ...state.shipping,
+      fullName: state.shipping.fullName || user?.name || "",
+    },
+  }))
+```
+
+### Layout with Order Summary
+
+The page uses a two-column layout:
+
+```jsx src/pages/checkoutShipping/CheckoutShipping.jsx
+<div className="row">
+  <div className="col-md-6">
+    {/* Shipping form */}
+  </div>
+  
+  <div className="col-md-5 offset-md-1">
+    <OrderSummary />
+  </div>
+</div>
+```
+
+## Step 3: Payment
+
+### Payment Form
+
+The payment page collects credit card information with validation:
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+export const CheckoutPayment = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, loginWithRedirect } = useAuth0();
+  const [processing, setProcessing] = useState(false);
+  const [errors, setErrors] = useState({});
+  
+  const payment = useUserStore((state) => state.payment);
+  const setPayment = useUserStore((state) => state.setPayment);
+  const addOrder = useUserStore((state) => state.addOrder);
+
+  const cart = useCartStore((state) => state.cart);
+  const clearCart = useCartStore((state) => state.clearCart);
+
+  const [formData, setFormData] = useState(payment);
+
+  // Form handling and validation...
+};
+```
+
+### Payment Fields
+
+<CardGroup cols={3}>
+  <Card title="Card Number" icon="credit-card">
+    16-digit card number with auto-formatting (spaces every 4 digits)
+  </Card>
+  <Card title="Expiry Date" icon="calendar">
+    MM/YY format with validation for expired cards
+  </Card>
+  <Card title="CVC" icon="lock">
+    3-digit security code
+  </Card>
+</CardGroup>
+
+### Input Formatting
+
+Payment inputs are automatically formatted as users type:
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  let formattedValue = value;
+
+  if (name === "cardNumber") {
+    const digits = value.replace(/\D/g, "").substring(0, 16);
+    formattedValue = digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+  }
+  
+  if (name === "expiryDate") {
+    const digits = value.replace(/\D/g, "").substring(0, 4);
+    formattedValue =
+      digits.length > 2
+        ? `${digits.substring(0, 2)}/${digits.substring(2, 4)}`
+        : digits;
+  }
+  
+  if (name === "cvc") {
+    formattedValue = value.replace(/\D/g, "").substring(0, 3);
+  }
+
+  setFormData((prev) => {
+    const updated = { ...prev, [name]: formattedValue };
+    setPayment(updated);
+    return updated;
+  });
+};
+```
+
+### Validation
+
+Comprehensive validation ensures data integrity:
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+const validateExpiry = (value) => {
+  if (value.length < 5) return "Format: MM/YY";
+  
+  const [month, year] = value.split("/").map(Number);
+  const currentYear = new Date().getFullYear() % 100;
+  const currentMonth = new Date().getMonth() + 1;
+  
+  if (month < 1 || month > 12) return "Invalid month";
+  if (year < currentYear) return "Year expired";
+  if (year === currentYear && month < currentMonth) return "Month expired";
+  
+  return null;
+};
+
+const handlePayment = (e) => {
+  e.preventDefault();
+
+  const newErrors = {};
+  
+  if (formData.cardNumber.length < 19)
+    newErrors.cardNumber = "Full card number required";
+  
+  const expiryError = validateExpiry(formData.expiryDate);
+  if (expiryError) newErrors.expiryDate = expiryError;
+  
+  if (formData.cvc.length < 3) newErrors.cvc = "CVC required";
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
+
+  // Process payment...
+};
+```
+
+<Warning>
+  All validation errors are displayed inline below the respective input fields for immediate user feedback.
+</Warning>
+
+### Authentication Check
+
+Users must be authenticated to complete payment:
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+if (!isAuthenticated) {
+  loginWithRedirect({
+    appState: { returnTo: "/checkout/payment" },
+  });
+  return;
+}
+```
+
+<Info>
+  After authentication, users are redirected back to the payment page with their cart intact.
+</Info>
+
+## Order Processing
+
+### Creating the Order
+
+When payment is submitted, the system:
+
+<Steps>
+  <Step title="Generate Order ID">
+    Create unique 8-character alphanumeric order identifier
+  </Step>
+  <Step title="Show Processing State">
+    Display "Processing..." on submit button for 1.5 seconds
+  </Step>
+  <Step title="Save Order">
+    Add order to user's order history with all items and totals
+  </Step>
+  <Step title="Clear Cart">
+    Empty the shopping cart after successful order
+  </Step>
+  <Step title="Navigate to Success">
+    Redirect to success page with order ID
+  </Step>
+</Steps>
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+if (cart.length === 0) return navigate("/");
+
+const orderId = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+setProcessing(true);
+setTimeout(() => {
+  addOrder({
+    id: orderId,
+    date: new Date().toISOString(),
+    items: [...cart],
+    total: cart.reduce((acc, item) => acc + item.price * item.qty, 0),
+  });
+  
+  clearCart();
+  navigate("/payment/success", { state: { orderId } });
+}, 1500);
+```
+
+### Order Storage
+
+Orders are stored in the user store with persistence:
+
+```javascript src/store/useUserStore.js
+orders: [],
+
+addOrder: (order) =>
+  set((state) => ({
+    orders: [...state.orders, order],
+  }))
+```
+
+## Order Summary Component
+
+Both shipping and payment pages display a real-time order summary:
+
+```jsx
+<div className="col-md-5">
+  <OrderSummary />
+</div>
+```
+
+The summary shows:
+- All cart items with quantities
+- Subtotal calculation
+- Shipping cost (Free)
+- Final total
+
+<Tip>
+  The order summary updates automatically if users navigate back to edit their cart.
+</Tip>
+
+## User Experience Features
+
+### Progress Tracking
+
+<CardGroup cols={3}>
+  <Card title="Visual Stepper" icon="list-check">
+    Always visible progress indicator
+  </Card>
+  <Card title="Back Navigation" icon="arrow-left">
+    Users can navigate backward to edit information
+  </Card>
+  <Card title="Forward Only" icon="shield">
+    Cannot skip steps - must complete in order
+  </Card>
+</CardGroup>
+
+### Data Persistence
+
+<Note>
+  All shipping and payment form data is persisted to localStorage, allowing users to resume checkout after closing the browser.
+</Note>
+
+### Responsive Design
+
+The checkout flow uses responsive Bootstrap grid layouts:
+- **Desktop**: Side-by-side form and order summary
+- **Mobile**: Stacked layout with form above summary
+
+```jsx
+<div className="row">
+  <div className="col-md-7">
+    {/* Form */}
+  </div>
+  <div className="col-md-5">
+    {/* Summary */}
+  </div>
+</div>
+```
+
+## Error Handling
+
+### Validation Errors
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+<input
+  className={`form-control ${errors.cardNumber ? "is-invalid" : ""}`}
+  name="cardNumber"
+  value={formData.cardNumber}
+  onChange={handleChange}
+  required
+/>
+<div className="error-container">{errors.cardNumber}</div>
+```
+
+### Empty Cart Protection
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+if (cart.length === 0) return navigate("/");
+```
+
+<Warning>
+  If the cart is empty when accessing payment page, users are automatically redirected to the home page.
+</Warning>
+
+## Best Practices
+
+<Accordion title="Implementation Guidelines">
+  ### Form Handling
+  - Always validate on both client side (immediate feedback) and before submission
+  - Auto-format inputs to match expected patterns (card numbers, dates)
+  - Display inline error messages below fields
+
+  ### State Management
+  - Use persistent stores for form data to survive page refreshes
+  - Clear sensitive payment data after order completion
+  - Keep cart in sync across all checkout steps
+
+  ### User Experience
+  - Show processing states during async operations
+  - Prevent double-submission with disabled buttons
+  - Maintain order summary visible throughout checkout
+
+  ### Security
+  - Require authentication before payment
+  - Validate expiry dates against current date
+  - Never store complete card numbers in localStorage
+</Accordion>
+
+<Info>
+  The checkout flow is designed to minimize cart abandonment with clear progress indicators, persistent data, and inline validation.
+</Info>

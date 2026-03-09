@@ -1,0 +1,446 @@
+---
+title: 'Testing'
+description: 'Testing guidelines and practices for Villa Buena E-Commerce'
+---
+
+## Overview
+
+Currently, Villa Buena E-Commerce does not have a dedicated testing framework configured. This page provides guidance on setting up testing and best practices for the project.
+
+<Note>
+  No test runner or testing libraries are currently installed in the project. This page serves as a guide for implementing testing in the future.
+</Note>
+
+## Recommended Testing Setup
+
+### Test Framework Options
+
+For a React + Vite project, consider these popular testing frameworks:
+
+<CardGroup cols={2}>
+  <Card title="Vitest" icon="vial">
+    **Recommended** - Native Vite integration, fast, Jest-compatible API
+    
+    ```bash
+    npm install -D vitest @vitest/ui
+    ```
+  </Card>
+  
+  <Card title="Jest" icon="flask">
+    Industry standard, extensive ecosystem, requires additional configuration for Vite
+    
+    ```bash
+    npm install -D jest @types/jest
+    ```
+  </Card>
+</CardGroup>
+
+### React Testing Library
+
+For component testing, React Testing Library is the recommended approach:
+
+```bash
+npm install -D @testing-library/react @testing-library/jest-dom @testing-library/user-event
+```
+
+### End-to-End Testing
+
+For E2E testing, consider:
+
+- **Playwright** - Modern, multi-browser support
+- **Cypress** - Developer-friendly, extensive documentation
+
+## Setting Up Vitest (Recommended)
+
+<Steps>
+  <Step title="Install dependencies">
+    ```bash
+    npm install -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom jsdom
+    ```
+  </Step>
+
+  <Step title="Update vite.config.js">
+    Add test configuration to your Vite config:
+    
+    ```javascript
+    import { defineConfig } from 'vite'
+    import react from '@vitejs/plugin-react'
+    
+    export default defineConfig({
+      plugins: [react()],
+      test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './src/test/setup.js',
+        css: true,
+      },
+    })
+    ```
+  </Step>
+
+  <Step title="Create test setup file">
+    Create `src/test/setup.js`:
+    
+    ```javascript
+    import { expect, afterEach } from 'vitest'
+    import { cleanup } from '@testing-library/react'
+    import * as matchers from '@testing-library/jest-dom/matchers'
+    
+    expect.extend(matchers)
+    
+    afterEach(() => {
+      cleanup()
+    })
+    ```
+  </Step>
+
+  <Step title="Add test scripts to package.json">
+    ```json
+    {
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "lint": "eslint .",
+        "preview": "vite preview",
+        "test": "vitest",
+        "test:ui": "vitest --ui",
+        "test:coverage": "vitest --coverage"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Test Structure
+
+### Recommended Directory Structure
+
+```
+src/
+├── components/
+│   ├── ProductCard.jsx
+│   └── ProductCard.test.jsx
+├── services/
+│   ├── api.js
+│   └── api.test.js
+├── hooks/
+│   ├── useCart.js
+│   └── useCart.test.js
+├── test/
+│   ├── setup.js
+│   └── utils.js
+└── __tests__/
+    └── integration/
+```
+
+<Tip>
+  Co-locate test files with their corresponding components using the `.test.jsx` or `.spec.jsx` suffix.
+</Tip>
+
+## Testing Best Practices
+
+### Component Testing
+
+Example test for a React component:
+
+```javascript
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { ProductCard } from './ProductCard'
+
+describe('ProductCard', () => {
+  it('renders product name and price', () => {
+    const product = {
+      id: 1,
+      name: 'Test Product',
+      price: 29.99,
+      image: '/test.jpg'
+    }
+    
+    render(<ProductCard product={product} />)
+    
+    expect(screen.getByText('Test Product')).toBeInTheDocument()
+    expect(screen.getByText('$29.99')).toBeInTheDocument()
+  })
+})
+```
+
+### Testing with React Router
+
+For components that use React Router (v7.13.1):
+
+```javascript
+import { render } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { ProductPage } from './ProductPage'
+
+const renderWithRouter = (component, { route = '/' } = {}) => {
+  const router = createMemoryRouter(
+    [{ path: route, element: component }],
+    { initialEntries: [route] }
+  )
+  
+  return render(<RouterProvider router={router} />)
+}
+
+it('renders product page', () => {
+  renderWithRouter(<ProductPage />, { route: '/products/1' })
+  // assertions...
+})
+```
+
+### Testing with Auth0
+
+Mock the Auth0 provider for testing:
+
+```javascript
+import { vi } from 'vitest'
+
+vi.mock('@auth0/auth0-react', () => ({
+  Auth0Provider: ({ children }) => children,
+  useAuth0: () => ({
+    isAuthenticated: true,
+    user: { email: 'test@example.com' },
+    loginWithRedirect: vi.fn(),
+    logout: vi.fn(),
+  }),
+}))
+```
+
+### Testing TanStack Query
+
+Wrap components with QueryClient for testing:
+
+```javascript
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render } from '@testing-library/react'
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+})
+
+const renderWithQuery = (component) => {
+  const queryClient = createTestQueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {component}
+    </QueryClientProvider>
+  )
+}
+```
+
+### Testing Zustand Stores
+
+Test Zustand stores in isolation:
+
+```javascript
+import { renderHook, act } from '@testing-library/react'
+import { useCartStore } from './cartStore'
+
+it('adds item to cart', () => {
+  const { result } = renderHook(() => useCartStore())
+  
+  act(() => {
+    result.current.addItem({ id: 1, name: 'Product', price: 10 })
+  })
+  
+  expect(result.current.items).toHaveLength(1)
+  expect(result.current.items[0].id).toBe(1)
+})
+```
+
+## API Testing
+
+Test the API service layer with mocked axios:
+
+```javascript
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+import axios from 'axios'
+import { api } from './api'
+
+vi.mock('axios')
+
+describe('API service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+  
+  it('creates axios instance with correct baseURL', () => {
+    expect(api.defaults.baseURL).toBe(import.meta.env.VITE_API_URL)
+  })
+})
+```
+
+## Coverage Goals
+
+<Note>
+  Aim for meaningful coverage, not just high percentages. Focus on critical paths and business logic.
+</Note>
+
+### Recommended Coverage Targets
+
+- **Statements:** 80%+
+- **Branches:** 75%+
+- **Functions:** 80%+
+- **Lines:** 80%+
+
+### Generate Coverage Reports
+
+```bash
+npm run test:coverage
+```
+
+This generates a coverage report in the `coverage/` directory.
+
+## Continuous Integration
+
+### GitHub Actions Example
+
+Create `.github/workflows/test.yml`:
+
+```yaml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Generate coverage
+        run: npm run test:coverage
+```
+
+## Testing Checklist
+
+<Steps>
+  <Step title="Unit tests">
+    Test individual functions and components in isolation
+    
+    - Utility functions
+    - React hooks
+    - Store logic
+  </Step>
+
+  <Step title="Component tests">
+    Test components with React Testing Library
+    
+    - Rendering
+    - User interactions
+    - Props handling
+    - Conditional rendering
+  </Step>
+
+  <Step title="Integration tests">
+    Test component interactions and data flow
+    
+    - Forms with validation
+    - API calls with TanStack Query
+    - Router navigation
+    - Authentication flows
+  </Step>
+
+  <Step title="E2E tests">
+    Test critical user journeys
+    
+    - User registration/login
+    - Product browsing and search
+    - Add to cart and checkout
+    - Order placement
+  </Step>
+</Steps>
+
+## Common Testing Patterns
+
+### Testing Async Operations
+
+```javascript
+import { render, screen, waitFor } from '@testing-library/react'
+import { ProductList } from './ProductList'
+
+it('loads and displays products', async () => {
+  render(<ProductList />)
+  
+  expect(screen.getByText('Loading...')).toBeInTheDocument()
+  
+  await waitFor(() => {
+    expect(screen.getByText('Product 1')).toBeInTheDocument()
+  })
+})
+```
+
+### Testing User Interactions
+
+```javascript
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { AddToCartButton } from './AddToCartButton'
+
+it('calls onAdd when clicked', async () => {
+  const user = userEvent.setup()
+  const onAdd = vi.fn()
+  
+  render(<AddToCartButton onAdd={onAdd} />)
+  
+  await user.click(screen.getByRole('button', { name: /add to cart/i }))
+  
+  expect(onAdd).toHaveBeenCalledTimes(1)
+})
+```
+
+### Testing Forms
+
+```javascript
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { LoginForm } from './LoginForm'
+
+it('submits form with user credentials', async () => {
+  const user = userEvent.setup()
+  const onSubmit = vi.fn()
+  
+  render(<LoginForm onSubmit={onSubmit} />)
+  
+  await user.type(screen.getByLabelText(/email/i), 'user@example.com')
+  await user.type(screen.getByLabelText(/password/i), 'password123')
+  await user.click(screen.getByRole('button', { name: /login/i }))
+  
+  expect(onSubmit).toHaveBeenCalledWith({
+    email: 'user@example.com',
+    password: 'password123'
+  })
+})
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="wrench" href="/development/setup">
+    Configure your development environment
+  </Card>
+  <Card title="Building" icon="hammer" href="/development/building">
+    Build the application for production
+  </Card>
+</CardGroup>
+
+<Tip>
+  Start by adding tests for critical business logic and gradually increase coverage. Don't aim for 100% coverage from day one.
+</Tip>

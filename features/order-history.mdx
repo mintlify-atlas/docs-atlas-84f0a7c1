@@ -1,0 +1,470 @@
+---
+title: 'Order History'
+description: 'View and manage completed orders with detailed transaction history'
+icon: 'clock-rotate-left'
+---
+
+The order history page provides users with a comprehensive view of all their past purchases, including detailed breakdowns of items, quantities, and totals.
+
+## Overview
+
+Order history features include:
+- Complete list of all past orders
+- Detailed item breakdown for each order
+- Order dates and unique identifiers
+- Total amounts with shipping information
+- Chronological display (newest first)
+
+## Accessing Order History
+
+Users can view their order history at `/orders` after completing at least one purchase through the checkout flow.
+
+<Info>
+  Orders are stored in the user store with persistence, meaning order history survives browser restarts and remains available across sessions.
+</Info>
+
+## Order History Page
+
+### Component Structure
+
+```jsx src/pages/orders/OrderHistory.jsx
+import { useUserStore } from "../../store/useUserStore";
+import { Package, ShoppingBag } from "lucide-react";
+import { Link } from "react-router-dom";
+
+export const OrderHistory = () => {
+  const orders = useUserStore((state) => state.orders);
+
+  if (orders.length === 0) {
+    return (
+      <div className="container orders-empty">
+        <ShoppingBag size={48} className="orders-empty-icon" />
+        <h3>No orders yet</h3>
+        <p>Your order history will appear here after your first purchase.</p>
+        <Link to="/" className="orders-shop-btn">
+          Start Shopping
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container orders-container">
+      <h2 className="orders-title">Order History</h2>
+      {/* Order list */}
+    </div>
+  );
+};
+```
+
+## Empty State
+
+When users haven't placed any orders, they see an inviting empty state:
+
+<CardGroup cols={3}>
+  <Card title="Icon" icon="bag-shopping">
+    Large shopping bag icon (48px)
+  </Card>
+  <Card title="Message" icon="message">
+    Clear message explaining the empty state
+  </Card>
+  <Card title="Call to Action" icon="arrow-right">
+    "Start Shopping" button linking to catalog
+  </Card>
+</CardGroup>
+
+```jsx src/pages/orders/OrderHistory.jsx
+if (orders.length === 0) {
+  return (
+    <div className="container orders-empty">
+      <ShoppingBag size={48} className="orders-empty-icon" />
+      <h3>No orders yet</h3>
+      <p>Your order history will appear here after your first purchase.</p>
+      <Link to="/" className="orders-shop-btn">
+        Start Shopping
+      </Link>
+    </div>
+  );
+}
+```
+
+## Order Display
+
+### Order Card Layout
+
+Each order is displayed in a detailed card showing all relevant information:
+
+```jsx src/pages/orders/OrderHistory.jsx
+<div className="orders-list">
+  {[...orders].reverse().map((order) => (
+    <div key={order.id} className="orders-card card">
+      <div className="orders-card-header">
+        <div className="orders-card-meta">
+          <Package size={15} />
+          <span className="orders-id">#{order.id}</span>
+        </div>
+        <span className="orders-date">
+          {new Date(order.date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </span>
+      </div>
+      {/* Order items and totals */}
+    </div>
+  ))}
+</div>
+```
+
+<Note>
+  Orders are displayed in reverse chronological order using `[...orders].reverse()`, showing the most recent orders first.
+</Note>
+
+### Order Header
+
+Each order card header displays:
+
+<Steps>
+  <Step title="Order ID">
+    Unique 8-character identifier prefixed with #
+  </Step>
+  <Step title="Package Icon">
+    Visual indicator using Lucide's Package icon
+  </Step>
+  <Step title="Order Date">
+    Formatted date (e.g., "March 9, 2026")
+  </Step>
+</Steps>
+
+### Order Items List
+
+All products in the order are displayed with details:
+
+```jsx src/pages/orders/OrderHistory.jsx
+<div className="orders-items">
+  {order.items.map((item) => (
+    <div key={item.id} className="orders-summary-item">
+      <img
+        src={item.thumbnail}
+        alt={item.title}
+        className="orders-item-img"
+      />
+      <div className="orders-item-info">
+        <span className="orders-item-title">
+          {item.title.length > 40
+            ? `${item.title.substring(0, 40)}...`
+            : item.title}
+        </span>
+        <span className="orders-item-quantity">
+          Amount: {item.qty}
+        </span>
+      </div>
+      <span className="orders-item-price">
+        ${(item.price * item.qty).toFixed(2)}
+      </span>
+    </div>
+  ))}
+</div>
+```
+
+### Item Information Display
+
+<CardGroup cols={4}>
+  <Card title="Thumbnail" icon="image">
+    Product image for visual reference
+  </Card>
+  <Card title="Title" icon="heading">
+    Product name (truncated at 40 chars)
+  </Card>
+  <Card title="Quantity" icon="hashtag">
+    Number of units purchased
+  </Card>
+  <Card title="Subtotal" icon="dollar-sign">
+    Line total (price × quantity)
+  </Card>
+</CardGroup>
+
+<Tip>
+  Long product titles are automatically truncated to 40 characters with ellipsis for clean display.
+</Tip>
+
+## Order Totals
+
+### Financial Breakdown
+
+Each order card displays a complete financial summary:
+
+```jsx src/pages/orders/OrderHistory.jsx
+<div className="orders-card-footer">
+  <div className="orders-footer-row">
+    <span className="orders-footer-label">
+      Subtotal ({order.items.reduce((a, i) => a + i.qty, 0)} items)
+    </span>
+    <span>${order.total.toFixed(2)}</span>
+  </div>
+  
+  <div className="orders-footer-row">
+    <span className="orders-footer-label">Shipping</span>
+    <span className="orders-shipping-free">Free</span>
+  </div>
+  
+  <hr className="orders-divider" />
+  
+  <div className="orders-footer-total">
+    <span>Total</span>
+    <span className="orders-total-value">
+      ${order.total.toFixed(2)}
+    </span>
+  </div>
+</div>
+```
+
+### Summary Components
+
+<Steps>
+  <Step title="Subtotal">
+    Sum of all items with total item count display
+  </Step>
+  <Step title="Shipping">
+    Displayed as "Free" in green text
+  </Step>
+  <Step title="Divider Line">
+    Visual separator before final total
+  </Step>
+  <Step title="Grand Total">
+    Final order amount in prominent styling
+  </Step>
+</Steps>
+
+## Order Data Structure
+
+### Order Object
+
+Each order in the history has the following structure:
+
+```javascript
+{
+  id: "ABC12345",              // 8-character unique ID
+  date: "2026-03-09T10:30:00Z", // ISO 8601 timestamp
+  items: [                      // Array of purchased products
+    {
+      id: 1,
+      title: "Product Name",
+      price: 29.99,
+      thumbnail: "https://...",
+      qty: 2
+    }
+  ],
+  total: 59.98                 // Total order amount
+}
+```
+
+### Order Creation
+
+Orders are created during checkout payment processing:
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+const orderId = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+addOrder({
+  id: orderId,
+  date: new Date().toISOString(),
+  items: [...cart],
+  total: cart.reduce((acc, item) => acc + item.price * item.qty, 0),
+});
+```
+
+<Warning>
+  Order IDs are generated client-side using `Math.random()`. In production, use server-generated UUIDs or sequential IDs.
+</Warning>
+
+## State Management
+
+### Order Storage
+
+Orders are managed through the user store:
+
+```javascript src/store/useUserStore.js
+export const useUserStore = create(
+  persist(
+    (set) => ({
+      orders: [],
+
+      addOrder: (order) =>
+        set((state) => ({
+          orders: [...state.orders, order],
+        })),
+    }),
+    {
+      name: "user-checkout-storage",
+    },
+  ),
+);
+```
+
+### Persistence
+
+<Info>
+  The persist middleware automatically saves orders to localStorage under the key `user-checkout-storage`, ensuring order history survives browser restarts.
+</Info>
+
+## Date Formatting
+
+### Localized Date Display
+
+Order dates are formatted using JavaScript's `toLocaleDateString`:
+
+```jsx src/pages/orders/OrderHistory.jsx
+new Date(order.date).toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+})
+```
+
+Example output: **March 9, 2026**
+
+<Accordion title="Date Format Options">
+  - **year**: `numeric` - Full 4-digit year
+  - **month**: `long` - Full month name (e.g., "January")
+  - **day**: `numeric` - Day of month without leading zero
+  - **locale**: `en-US` - US English formatting
+</Accordion>
+
+## Calculations
+
+### Item Count
+
+Total number of items in an order:
+
+```javascript
+order.items.reduce((acc, item) => acc + item.qty, 0)
+```
+
+### Line Item Totals
+
+Price for each product line:
+
+```javascript
+(item.price * item.qty).toFixed(2)
+```
+
+### Order Total
+
+Stored during order creation:
+
+```javascript
+cart.reduce((acc, item) => acc + item.price * item.qty, 0)
+```
+
+<Note>
+  All monetary values are formatted to 2 decimal places using `.toFixed(2)` for consistent currency display.
+</Note>
+
+## User Experience Features
+
+### Visual Hierarchy
+
+<CardGroup cols={2}>
+  <Card title="Order Separation" icon="layer-group">
+    Each order in its own card with clear borders
+  </Card>
+  <Card title="Section Dividers" icon="grip-lines">
+    Horizontal rules separate items from totals
+  </Card>
+  <Card title="Typography" icon="font">
+    Varied font sizes emphasize important information
+  </Card>
+  <Card title="Icons" icon="icons">
+    Package and shopping bag icons add visual context
+  </Card>
+</CardGroup>
+
+### Responsive Layout
+
+The order history page uses responsive container classes:
+
+```jsx
+<div className="container orders-container">
+  {/* Content adapts to screen size */}
+</div>
+```
+
+### Empty State UX
+
+<Tip>
+  The empty state doesn't just show "no orders" - it encourages users to start shopping with a clear call-to-action button.
+</Tip>
+
+## Integration with Checkout
+
+Order history is the final destination after successful checkout:
+
+<Steps>
+  <Step title="Complete Payment">
+    User submits payment on checkout page
+  </Step>
+  <Step title="Create Order">
+    System generates order with unique ID
+  </Step>
+  <Step title="Add to History">
+    Order saved to user store with `addOrder()`
+  </Step>
+  <Step title="Clear Cart">
+    Shopping cart is emptied
+  </Step>
+  <Step title="Navigate to Success">
+    User sees success page with order ID
+  </Step>
+  <Step title="View History">
+    User can navigate to order history to see all orders
+  </Step>
+</Steps>
+
+## Best Practices
+
+### Display Guidelines
+
+<Accordion title="Implementation Best Practices">
+  ### Sorting
+  - Always show newest orders first using `.reverse()`
+  - Consider pagination for users with many orders
+
+  ### Data Display
+  - Truncate long product titles for clean layout
+  - Format all prices to 2 decimal places
+  - Use consistent date formatting throughout
+
+  ### Performance
+  - Use React keys properly (order.id for orders, item.id for items)
+  - Consider lazy loading images for orders with many items
+
+  ### User Experience
+  - Provide clear empty state with action button
+  - Use icons for visual interest and clarity
+  - Maintain consistent styling with checkout flow
+</Accordion>
+
+## Future Enhancements
+
+Potential improvements for order history:
+
+<CardGroup cols={2}>
+  <Card title="Order Search" icon="magnifying-glass">
+    Search orders by ID, product name, or date range
+  </Card>
+  <Card title="Order Details Page" icon="file-invoice">
+    Dedicated page for each order with more information
+  </Card>
+  <Card title="Reorder Functionality" icon="rotate">
+    Quick reorder button to add items back to cart
+  </Card>
+  <Card title="Order Status" icon="truck-fast">
+    Track shipping status and delivery updates
+  </Card>
+</CardGroup>
+
+<Warning>
+  Current implementation stores orders client-side only. Production systems should use server-side storage with proper database persistence.
+</Warning>

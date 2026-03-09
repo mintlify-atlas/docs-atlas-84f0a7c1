@@ -1,0 +1,414 @@
+---
+title: 'Shopping Cart'
+description: 'Manage products in your cart with quantity controls and real-time totals'
+icon: 'cart-shopping'
+---
+
+The shopping cart provides a complete interface for managing selected products before checkout, with persistent storage and real-time price calculations.
+
+## Overview
+
+Villa Buena's shopping cart system includes:
+- Persistent cart storage (survives page refreshes)
+- Quantity management (increase, decrease, remove)
+- Real-time total calculations
+- Order summary preview
+- Checkout flow integration
+
+## Cart State Management
+
+### Zustand Store with Persistence
+
+The cart uses Zustand with persistence middleware for state management:
+
+```javascript src/store/useCartStore.js
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export const useCartStore = create(
+  persist(
+    (set) => ({
+      cart: [],
+
+      addToCart: (product) =>
+        set((state) => {
+          const existing = state.cart.find(
+            (item) => item.id === product.id
+          );
+
+          if (existing) {
+            return {
+              cart: state.cart.map((item) =>
+                item.id === product.id
+                  ? { ...item, qty: item.qty + 1 }
+                  : item
+              ),
+            };
+          }
+
+          return {
+            cart: [...state.cart, { ...product, qty: 1 }],
+          };
+        }),
+
+      increaseQty: (id) =>
+        set((state) => ({
+          cart: state.cart.map((item) =>
+            item.id === id
+              ? { ...item, qty: item.qty + 1 }
+              : item
+          ),
+        })),
+
+      decreaseQty: (id) =>
+        set((state) => ({
+          cart: state.cart
+            .map((item) =>
+              item.id === id
+                ? { ...item, qty: item.qty - 1 }
+                : item
+            )
+            .filter((item) => item.qty > 0),
+        })),
+
+      removeFromCart: (id) =>
+        set((state) => ({
+          cart: state.cart.filter(
+            (item) => item.id !== id
+          ),
+        })),
+
+      clearCart: () =>
+        set(() => ({
+          cart: [],
+        })),
+    }),
+    {
+      name: "cart-storage",
+    }
+  )
+);
+```
+
+<Info>
+  Cart data is automatically saved to localStorage with the key `cart-storage`, persisting across browser sessions.
+</Info>
+
+## Adding Products to Cart
+
+### From Product Catalog
+
+<Steps>
+  <Step title="Click Add Button">
+    User clicks "Add" button on any product card
+  </Step>
+  <Step title="Check for Duplicates">
+    System checks if product already exists in cart
+  </Step>
+  <Step title="Update or Add">
+    If exists: increment quantity by 1
+    If new: add with quantity 1
+  </Step>
+  <Step title="Show Confirmation">
+    Display toast notification confirming addition
+  </Step>
+</Steps>
+
+```jsx src/components/productCard/ProductCard.jsx
+const handleAddToCart = () => {
+  addToCart({
+    id: product.id,
+    title: product.title,
+    price: product.price,
+    thumbnail: product.thumbnail,
+  });
+  showToast("Added to cart");
+};
+```
+
+### From Product Detail Page
+
+Users can also add products from the detailed product view:
+
+```jsx src/pages/productDetail/ProductDetail.jsx
+const handleAddToCart = () => {
+  addToCart({
+    id: product.id,
+    title: product.title,
+    price: product.price,
+    thumbnail: product.thumbnail,
+  });
+  showToast("Added to cart");
+};
+```
+
+## Cart Page Interface
+
+### Empty Cart State
+
+When the cart is empty, users see an inviting call-to-action:
+
+```jsx src/pages/cart/Cart.jsx
+if (cart.length === 0) {
+  return (
+    <div className="container py-5">
+      <div className="cart-empty-container">
+        <h3 className="cart-empty-title">Your cart is empty</h3>
+        <button className="cart-empty-btn" onClick={() => navigate("/")}>
+          Go Shopping
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Cart Items Display
+
+Each cart item shows comprehensive product information:
+
+<CardGroup cols={2}>
+  <Card title="Product Details" icon="box">
+    - Product thumbnail image
+    - Product title (linked to detail page)
+    - Unit price
+    - Subtotal (price × quantity)
+  </Card>
+  <Card title="Quantity Controls" icon="sliders">
+    - Decrease button (minus icon)
+    - Current quantity display
+    - Increase button (plus icon)
+    - Remove button
+  </Card>
+</CardGroup>
+
+## Quantity Management
+
+### Increase Quantity
+
+```javascript src/store/useCartStore.js
+increaseQty: (id) =>
+  set((state) => ({
+    cart: state.cart.map((item) =>
+      item.id === id
+        ? { ...item, qty: item.qty + 1 }
+        : item
+    ),
+  }))
+```
+
+### Decrease Quantity
+
+<Warning>
+  When quantity reaches 0, the product is automatically removed from the cart.
+</Warning>
+
+```javascript src/store/useCartStore.js
+decreaseQty: (id) =>
+  set((state) => ({
+    cart: state.cart
+      .map((item) =>
+        item.id === id
+          ? { ...item, qty: item.qty - 1 }
+          : item
+      )
+      .filter((item) => item.qty > 0), // Auto-remove at 0
+  }))
+```
+
+### Remove Item
+
+Users can instantly remove items without decrementing to zero:
+
+```javascript src/store/useCartStore.js
+removeFromCart: (id) =>
+  set((state) => ({
+    cart: state.cart.filter(
+      (item) => item.id !== id
+    ),
+  }))
+```
+
+### UI Implementation
+
+```jsx src/pages/cart/Cart.jsx
+<div className="cart-qty-control">
+  <button
+    className="cart-qty-btn"
+    onClick={() => decreaseQty(item.id)}
+    aria-label="Decrease quantity"
+  >
+    <Minus size={15} />
+  </button>
+  <span className="cart-qty-value">{item.qty}</span>
+  <button
+    className="cart-qty-btn"
+    onClick={() => increaseQty(item.id)}
+    aria-label="Increase quantity"
+  >
+    <Plus size={15} />
+  </button>
+</div>
+
+<button
+  className="cart-remove-btn"
+  onClick={() => removeFromCart(item.id)}
+>
+  Remove
+</button>
+```
+
+## Order Summary
+
+### Real-time Calculations
+
+The cart automatically calculates totals as quantities change:
+
+```jsx src/pages/cart/Cart.jsx
+const total = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+```
+
+### Summary Display
+
+<Steps>
+  <Step title="Subtotal">
+    Shows total before shipping: `Subtotal (X items): $XX.XX`
+  </Step>
+  <Step title="Shipping">
+    Currently displays as "Free" for all orders
+  </Step>
+  <Step title="Total">
+    Final amount due, prominently displayed
+  </Step>
+</Steps>
+
+```jsx src/pages/cart/Cart.jsx
+<div className="cart-summary-card">
+  <h5 className="cart-summary-title">Order Summary</h5>
+
+  <div className="cart-summary-details">
+    <div className="cart-summary-row">
+      <span>Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
+      <span>${total.toFixed(2)}</span>
+    </div>
+
+    <div className="cart-summary-row">
+      <span>Shipping</span>
+      <span className="text-success">Free</span>
+    </div>
+
+    <hr />
+
+    <div className="cart-summary-total">
+      <span>Total</span>
+      <span className="cart-summary-total-amount">
+        ${total.toFixed(2)}
+      </span>
+    </div>
+  </div>
+</div>
+```
+
+## Navigation and Actions
+
+### Primary Actions
+
+<CardGroup cols={2}>
+  <Card title="Proceed to Checkout" icon="credit-card">
+    Primary button that navigates to shipping information page
+  </Card>
+  <Card title="Continue Shopping" icon="store">
+    Secondary link button to return to product catalog
+  </Card>
+</CardGroup>
+
+```jsx src/pages/cart/Cart.jsx
+<button
+  className="cart-checkout-btn"
+  onClick={() => navigate("/checkout/shipping")}
+>
+  Proceed to Checkout
+</button>
+
+<button
+  className="cart-continue-btn"
+  onClick={() => navigate("/")}
+>
+  Continue Shopping
+</button>
+```
+
+## Checkout Stepper Integration
+
+The cart page shows the first step in a three-step checkout process:
+
+```jsx src/pages/cart/Cart.jsx
+<CheckoutStepper step={1} />
+```
+
+<Info>
+  The stepper provides visual feedback showing users their progress through:
+  1. Shopping Cart (current)
+  2. Shipping Information
+  3. Payment
+</Info>
+
+## Cart Item Display Details
+
+### Responsive Layout
+
+Cart items use a responsive grid layout:
+
+```jsx src/pages/cart/Cart.jsx
+<div className="row">
+  {/* Product list - 8 columns on medium+ screens */}
+  <div className="col-md-8">
+    {cart.map((item) => (
+      <div key={item.id} className="cart-item-card">
+        <div className="row g-0">
+          <div className="col-md-3">
+            <img src={item.thumbnail} alt={item.title} />
+          </div>
+          <div className="col-md-9">
+            {/* Item details and controls */}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Order summary - 4 columns on medium+ screens */}
+  <div className="col-md-4">
+    <div className="cart-summary-card">
+      {/* Summary content */}
+    </div>
+  </div>
+</div>
+```
+
+## Best Practices
+
+<Accordion title="Development Guidelines">
+  ### State Management
+  - Always use the Zustand store methods, never mutate cart state directly
+  - Rely on persistence middleware to handle localStorage automatically
+
+  ### User Experience
+  - Provide immediate visual feedback for all cart actions
+  - Use toast notifications for successful additions
+  - Display clear empty state messaging
+
+  ### Performance
+  - Cart calculations use reduce for O(n) efficiency
+  - Quantity updates are optimized with map operations
+
+  ### Accessibility
+  - Include aria-labels on icon-only buttons
+  - Ensure proper alt text on product images
+  - Use semantic HTML for better screen reader support
+</Accordion>
+
+<Tip>
+  The cart's persistent storage means users won't lose their selections even if they close the browser, improving conversion rates.
+</Tip>

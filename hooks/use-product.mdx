@@ -1,0 +1,258 @@
+---
+title: 'useProduct'
+description: 'React Query hook for fetching a single product by ID'
+icon: 'box-open'
+---
+
+## Overview
+
+The `useProduct` hook fetches detailed information for a single product by its ID. It's commonly used on product detail pages and includes automatic enabling/disabling based on ID availability.
+
+**Source:** `src/hooks/useProduct.js:4`
+
+## Function Signature
+
+```javascript
+export const useProduct = (id) => {
+  return useQuery({
+    queryKey: ["product", id],
+    queryFn: () => productService.getById(id),
+    enabled: !!id,
+  });
+};
+```
+
+## Parameters
+
+<ParamField path="id" type="number" required>
+  The numeric ID of the product to fetch
+</ParamField>
+
+## Return Value
+
+Returns a [React Query](https://tanstack.com/query/latest) result object:
+
+<ResponseField name="data" type="object | undefined">
+  Product object with detailed information
+  
+  <ResponseField name="id" type="number">
+    Product ID
+  </ResponseField>
+  
+  <ResponseField name="title" type="string">
+    Product title/name
+  </ResponseField>
+  
+  <ResponseField name="description" type="string">
+    Detailed product description
+  </ResponseField>
+  
+  <ResponseField name="price" type="number">
+    Product price
+  </ResponseField>
+  
+  <ResponseField name="thumbnail" type="string">
+    URL of the product thumbnail image
+  </ResponseField>
+  
+  <ResponseField name="images" type="string[]">
+    Array of product image URLs
+  </ResponseField>
+  
+  <ResponseField name="category" type="string">
+    Product category slug
+  </ResponseField>
+  
+  <ResponseField name="rating" type="number | object">
+    Product rating (format varies by API)
+  </ResponseField>
+  
+  <ResponseField name="discountPercentage" type="number" optional>
+    Discount percentage if applicable
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  `true` when the product data is being fetched
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  `true` if an error occurred during fetching
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the request failed
+</ResponseField>
+
+## Enabled Query Behavior
+
+<Note>
+  The query is automatically disabled when `id` is falsy (via `enabled: !!id`). This prevents unnecessary API calls when the ID hasn't been set yet.
+</Note>
+
+```javascript
+// Won't fetch until id is available
+const { data: product } = useProduct(undefined); // No API call
+const { data: product } = useProduct(null);      // No API call
+const { data: product } = useProduct(0);         // No API call
+const { data: product } = useProduct(42);        // Fetches product #42
+```
+
+## Usage Examples
+
+<CodeGroup>
+
+```jsx Product Detail Page
+import { useParams, useNavigate } from "react-router-dom";
+import { useProduct } from "../../hooks/useProduct";
+import { useCartStore } from "../../store/useCartStore";
+
+export const ProductDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const numericId = Number(id);
+
+  const { data: product, isLoading, isError } = useProduct(numericId);
+  const addToCart = useCartStore((state) => state.addToCart);
+
+  if (isLoading) {
+    return (
+      <div className="container py-5">
+        <div className="spinner-border" role="status" />
+        <h4 className="mt-3">Loading product...</h4>
+      </div>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <div className="container py-5">
+        <h4>Product not found</h4>
+        <button onClick={() => navigate("/")}>← Back to Store</button>
+      </div>
+    );
+  }
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      thumbnail: product.thumbnail,
+    });
+  };
+
+  return (
+    <div className="product-detail-container">
+      <h1>{product.title}</h1>
+      <p className="price">${product.price.toFixed(2)}</p>
+      <p>{product.description}</p>
+      <button onClick={handleAddToCart}>Add to Cart</button>
+    </div>
+  );
+};
+```
+
+```jsx Quick View Modal
+import { useProduct } from "../hooks/useProduct";
+
+const QuickViewModal = ({ productId, onClose }) => {
+  const { data: product, isLoading } = useProduct(productId);
+
+  if (!productId) return null;
+
+  return (
+    <div className="modal">
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <div>
+          <h2>{product.title}</h2>
+          <img src={product.thumbnail} alt={product.title} />
+          <p>${product.price}</p>
+          <button onClick={onClose}>Close</button>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+```jsx Product Comparison
+import { useProduct } from "../hooks/useProduct";
+
+const ProductComparison = ({ productIds }) => {
+  // Fetch multiple products in parallel
+  const product1 = useProduct(productIds[0]);
+  const product2 = useProduct(productIds[1]);
+  const product3 = useProduct(productIds[2]);
+
+  const isLoading = product1.isLoading || product2.isLoading || product3.isLoading;
+
+  if (isLoading) return <div>Loading products...</div>;
+
+  return (
+    <div className="comparison-grid">
+      <ProductCard product={product1.data} />
+      <ProductCard product={product2.data} />
+      <ProductCard product={product3.data} />
+    </div>
+  );
+};
+```
+
+</CodeGroup>
+
+## URL Parameter Pattern
+
+Common pattern when using with React Router:
+
+```javascript
+import { useParams } from "react-router-dom";
+import { useProduct } from "../hooks/useProduct";
+
+const ProductPage = () => {
+  const { id } = useParams(); // String from URL
+  const numericId = Number(id); // Convert to number
+  
+  const { data: product } = useProduct(numericId);
+  // ...
+};
+```
+
+## API Service
+
+The hook uses `productService.getById(id)` which makes a GET request to `/products/{id}`.
+
+**Source:** `src/services/productService.js:8`
+
+## Caching Strategy
+
+<Note>
+  Each product is cached individually with the query key `["product", id]`. This means:
+  - Different products have separate cache entries
+  - Products remain cached even when navigating between pages
+  - Switching back to a previously viewed product shows cached data instantly
+</Note>
+
+## Error Handling
+
+From the real implementation (`src/pages/productDetail/ProductDetail.jsx:32`):
+
+```jsx
+if (isError || !product) {
+  return (
+    <div className="container py-5">
+      <div className="product-detail-error">
+        <h4>Product not found</h4>
+        <button onClick={() => navigate("/")}>← Back to Store</button>
+      </div>
+    </div>
+  );
+}
+```
+
+## Related Hooks
+
+- [useProducts](/hooks/use-products) - Fetch all products
+- [useProductsByCategory](/hooks/use-products#useproductsbycategory) - Fetch products by category

@@ -1,0 +1,279 @@
+---
+title: 'OrderSummary'
+description: 'Display cart items summary with pricing breakdown'
+icon: 'receipt'
+---
+
+## Overview
+
+The `OrderSummary` component displays a summary of cart items with individual item prices, subtotal, shipping information, and total. It's used in checkout flows to show what the customer is purchasing.
+
+## Props
+
+This component does not accept props. It retrieves cart data directly from the Zustand store:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:4-5
+export const OrderSummary = () => {
+  const cart = useCartStore((state) => state.cart);
+```
+
+## Usage
+
+<CodeGroup>
+```jsx Shipping Page
+import { OrderSummary } from "../../components/orderSummary/OrderSummary";
+
+export const CheckoutShipping = () => {
+  return (
+    <div className="container">
+      <div className="row">
+        <div className="col-md-6">
+          {/* Shipping form */}
+        </div>
+        
+        <div className="col-md-5 offset-md-1">
+          <OrderSummary />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+```jsx Payment Page
+import { OrderSummary } from "../../components/orderSummary/OrderSummary";
+
+export const CheckoutPayment = () => {
+  return (
+    <div className="container">
+      <div className="row">
+        <div className="col-md-7">
+          {/* Payment form */}
+        </div>
+        
+        <div className="col-md-4 offset-md-1">
+          <OrderSummary />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Features
+
+### Cart Calculations
+
+Automatically calculates totals from cart state:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:7-12
+const total = cart.reduce(
+  (acc, item) => acc + item.price * item.qty,
+  0
+);
+
+const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
+```
+
+### Empty State
+
+Displays a message when cart is empty:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:14-22
+if (cart.length === 0) {
+  return (
+    <div className="order-summary-card card">
+      <div className="order-summary-empty">
+        <p className="order-summary-empty-message">Your cart is empty</p>
+      </div>
+    </div>
+  );
+}
+```
+
+### Item List with Truncation
+
+Displays each cart item with truncated titles for long product names:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:28-44
+{cart.map((item) => (
+  <div key={item.id} className="order-summary-item">
+    <div className="order-summary-item-info">
+      <span className="order-summary-item-title">
+        {item.title.length > 35 
+          ? `${item.title.substring(0, 35)}...` 
+          : item.title}
+      </span>
+      <span className="order-summary-item-quantity">
+        Amount: {item.qty}
+      </span>
+    </div>
+    <span className="order-summary-item-price">
+      ${(item.price * item.qty).toFixed(2)}
+    </span>
+  </div>
+))}
+```
+
+<Note>
+Product titles longer than 35 characters are automatically truncated with an ellipsis to maintain a clean layout.
+</Note>
+
+### Pricing Breakdown
+
+#### Subtotal
+
+Displays item count and subtotal:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:48-53
+<div className="order-summary-row">
+  <span className="order-summary-label">
+    Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})
+  </span>
+  <span>${total.toFixed(2)}</span>
+</div>
+```
+
+#### Shipping
+
+Shows free shipping:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:55-58
+<div className="order-summary-row">
+  <span className="order-summary-label">Shipping</span>
+  <span className="order-summary-shipping">Free</span>
+</div>
+```
+
+#### Total
+
+Displays final total:
+
+```jsx src/components/orderSummary/OrderSummary.jsx:62-67
+<div className="order-summary-total">
+  <span>Total</span>
+  <span className="order-summary-total-amount">
+    ${total.toFixed(2)}
+  </span>
+</div>
+```
+
+## Component Structure
+
+```jsx
+<div className="order-summary-card card">
+  <h5 className="order-summary-title">Order Summary</h5>
+
+  {/* Item list */}
+  {cart.map((item) => (
+    <div key={item.id} className="order-summary-item">
+      {/* Item details */}
+    </div>
+  ))}
+
+  <hr className="order-summary-divider" />
+
+  {/* Subtotal */}
+  <div className="order-summary-row">...</div>
+  
+  {/* Shipping */}
+  <div className="order-summary-row">...</div>
+
+  <hr className="order-summary-divider" />
+
+  {/* Total */}
+  <div className="order-summary-total">...</div>
+</div>
+```
+
+## Styling
+
+The component uses these CSS classes from `OrderSummary.css`:
+
+- `.order-summary-card` - Main card container
+- `.order-summary-title` - "Order Summary" heading
+- `.order-summary-item` - Individual item row
+- `.order-summary-item-info` - Item title and quantity container
+- `.order-summary-item-title` - Product title
+- `.order-summary-item-quantity` - Quantity text
+- `.order-summary-item-price` - Item total price
+- `.order-summary-divider` - Horizontal separator
+- `.order-summary-row` - Subtotal and shipping rows
+- `.order-summary-label` - Label text
+- `.order-summary-shipping` - Free shipping text
+- `.order-summary-total` - Total row with emphasis
+- `.order-summary-total-amount` - Final total amount
+- `.order-summary-empty` - Empty state container
+- `.order-summary-empty-message` - Empty message text
+
+## Real-World Integration
+
+From the CheckoutShipping page:
+
+```jsx pages/checkoutShipping/CheckoutShipping.jsx
+import { useNavigate } from "react-router-dom";
+import { CheckoutStepper } from "../../components/checkoutStepper/CheckoutStepper";
+import { OrderSummary } from "../../components/orderSummary/OrderSummary";
+import { useUserStore } from "../../store/useUserStore";
+
+export const CheckoutShipping = () => {
+  const navigate = useNavigate();
+  const shipping = useUserStore((state) => state.shipping);
+  const setShipping = useUserStore((state) => state.setShipping);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    navigate("/checkout/payment");
+  };
+
+  return (
+    <div className="container shipping-container">
+      <CheckoutStepper step={2} />
+      <h2 className="shipping-title">Shipping Information</h2>
+
+      <div className="row">
+        <div className="col-md-6 shipping-form-col">
+          <form onSubmit={handleSubmit} className="shipping-form">
+            {/* Form inputs */}
+          </form>
+        </div>
+
+        <div className="col-md-5 offset-md-1 shipping-summary-col">
+          <OrderSummary />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+## Item Structure
+
+Each cart item in the store should have this structure:
+
+```typescript
+interface CartItem {
+  id: string | number;
+  title: string;
+  price: number;
+  qty: number;
+  thumbnail?: string; // Not used in OrderSummary, but part of cart items
+}
+```
+
+<Tip>
+The OrderSummary automatically updates when cart state changes, making it perfect for displaying real-time totals during the checkout process.
+</Tip>
+
+## Plural Handling
+
+The component correctly handles singular/plural item counts:
+
+```jsx
+Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})
+```
+
+Examples:
+- "Subtotal (1 item)"
+- "Subtotal (3 items)"

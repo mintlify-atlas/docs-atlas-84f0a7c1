@@ -1,0 +1,310 @@
+---
+title: 'Product Catalog'
+description: 'Browse, search, filter, and sort products in the Villa Buena store'
+icon: 'grid-2'
+---
+
+The product catalog is the heart of Villa Buena's shopping experience, allowing customers to discover and explore products through powerful search and filtering capabilities.
+
+## Overview
+
+The product catalog displays all available products with:
+- Grid-based product card layout
+- Category filtering
+- Real-time search
+- Price sorting
+- Pagination for large inventories
+
+## Product Display
+
+### Product Cards
+
+Each product is displayed in a responsive card showing key information:
+
+<CardGroup cols={2}>
+  <Card title="Product Information" icon="info-circle">
+    - Product image
+    - Product title
+    - Price (formatted to 2 decimals)
+    - Quick action buttons
+  </Card>
+  <Card title="User Actions" icon="hand-pointer">
+    - **View**: Navigate to detailed product page
+    - **Add**: Add product directly to cart
+  </Card>
+</CardGroup>
+
+### Implementation
+
+Products are rendered using the `ProductCard` component:
+
+```jsx src/components/productCard/ProductCard.jsx
+const ProductCard = ({ product }) => {
+  const addToCart = useCartStore((state) => state.addToCart);
+  const showToast = useUIStore((state) => state.showToast);
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      thumbnail: product.thumbnail,
+    });
+    showToast("Added to cart");
+  };
+
+  return (
+    <div className="col-md-4 col-lg-3 mb-4">
+      <div className="product-card h-100">
+        <img
+          src={product.thumbnail}
+          className="product-card-image"
+          alt={product.title}
+        />
+        <div className="card-body">
+          <h6 className="product-card-title">{product.title}</h6>
+          <p className="product-card-price">
+            ${Number(product.price).toFixed(2)}
+          </p>
+          <div className="product-card-actions">
+            <Link to={`/product/${product.id}`}>
+              View
+            </Link>
+            <button onClick={handleAddToCart}>Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+## Search and Filter System
+
+### Search Functionality
+
+Users can search products by title with real-time results:
+
+<Steps>
+  <Step title="Enter Search Term">
+    Type in the search box to filter products by title (case-insensitive)
+  </Step>
+  <Step title="Debounced Search">
+    Search uses 500ms debouncing to prevent excessive filtering during typing
+  </Step>
+  <Step title="Instant Results">
+    Product list updates automatically showing matching items
+  </Step>
+</Steps>
+
+```jsx src/pages/Home.jsx
+const processedProducts = useMemo(() => {
+  const products = productsData?.products || [];
+  let filtered = [...products];
+
+  // Search filter
+  if (searchParam) {
+    filtered = filtered.filter((p) =>
+      p.title.toLowerCase().includes(searchParam.toLowerCase()),
+    );
+  }
+
+  return filtered;
+}, [productsData, searchParam]);
+```
+
+### Category Filtering
+
+Products can be filtered by category using chip-style buttons:
+
+```jsx src/components/filters/Filters.jsx
+const handleCategoryChange = (cat) => {
+  setSearchParams((prevParams) => {
+    const params = new URLSearchParams(prevParams);
+    
+    if (cat) params.set("category", cat);
+    else params.delete("category");
+    
+    params.set("page", "1"); // Reset to first page
+    return params;
+  });
+};
+```
+
+<Note>
+  Category filters are synced with URL parameters, allowing users to share filtered views via link.
+</Note>
+
+## Sorting Options
+
+Products can be sorted by price in ascending or descending order:
+
+<Accordion title="Available Sort Options">
+  - **Price: Low → High** - Budget-friendly items first
+  - **Price: High → Low** - Premium items first
+  - **Default** - Original order from API
+</Accordion>
+
+```jsx src/pages/Home.jsx
+if (sort === "price-asc") {
+  filtered.sort((a, b) => a.price - b.price);
+}
+
+if (sort === "price-desc") {
+  filtered.sort((a, b) => b.price - a.price);
+}
+```
+
+## Pagination
+
+### Page Management
+
+The catalog displays 12 products per page with navigation controls:
+
+```jsx src/pages/Home.jsx
+const limit = 12;
+
+const totalPages = Math.ceil(processedProducts.length / limit);
+
+const paginatedProducts = processedProducts.slice(
+  (page - 1) * limit,
+  page * limit,
+);
+```
+
+### User Interface
+
+<CardGroup cols={3}>
+  <Card title="Previous Button" icon="arrow-left">
+    Navigate to previous page (disabled on page 1)
+  </Card>
+  <Card title="Page Indicator" icon="hashtag">
+    Shows current page and total pages
+  </Card>
+  <Card title="Next Button" icon="arrow-right">
+    Navigate to next page (disabled on last page)
+  </Card>
+</CardGroup>
+
+<Info>
+  Pagination state is preserved in URL parameters, allowing users to bookmark specific pages.
+</Info>
+
+## Product Detail View
+
+Clicking "View" on a product card navigates to a detailed product page with:
+
+### Features
+
+- **Image Gallery**: Multiple product images with thumbnail navigation
+- **Full Description**: Complete product information
+- **Rating Display**: Star rating with review count
+- **Discount Badges**: Show percentage discounts if available
+- **Action Buttons**: Add to cart or buy now
+
+```jsx src/pages/productDetail/ProductDetail.jsx
+const renderStars = (rating) => {
+  const fullStars = Math.floor(rating);
+  const emptyStars = 5 - fullStars;
+
+  return (
+    <>
+      {"★".repeat(fullStars)}
+      {"☆".repeat(emptyStars)}
+    </>
+  );
+};
+```
+
+### Image Gallery
+
+The product detail page includes an interactive image gallery:
+
+<Steps>
+  <Step title="Thumbnail Selection">
+    Click any thumbnail to change the main displayed image
+  </Step>
+  <Step title="Active Indicator">
+    Currently selected thumbnail is highlighted with active styling
+  </Step>
+  <Step title="Fallback Handling">
+    If no images array exists, defaults to product thumbnail
+  </Step>
+</Steps>
+
+```jsx src/pages/productDetail/ProductDetail.jsx
+const images = product.images?.length ? product.images : [product.thumbnail];
+
+const mainImage = selectedImage && images.includes(selectedImage) 
+  ? selectedImage 
+  : images[0];
+```
+
+## Loading States
+
+<Warning>
+  The catalog implements skeleton loading screens while fetching products to improve perceived performance.
+</Warning>
+
+```jsx src/pages/Home.jsx
+{isLoading ? (
+  Array.from({ length: limit }).map((_, index) => (
+    <SkeletonCard key={index} />
+  ))
+) : (
+  paginatedProducts.map((product) => (
+    <ProductCard key={product.id} product={product} />
+  ))
+)}
+```
+
+## Error Handling
+
+If products fail to load, users see an error message with retry option:
+
+```jsx src/pages/Home.jsx
+{isError && (
+  <div className="alert text-center mb-4">
+    <h5>⚠️ Error loading products</h5>
+    <p>{error?.message || "Something went wrong."}</p>
+    <button onClick={() => refetch()}>Try Again</button>
+  </div>
+)}
+```
+
+## URL State Management
+
+All catalog filters and pagination state are managed via URL parameters:
+
+<Tip>
+  This approach enables:
+  - Shareable filtered/sorted views
+  - Browser back/forward navigation
+  - Bookmarkable product searches
+</Tip>
+
+```jsx src/pages/Home.jsx
+const [searchParams, setSearchParams] = useSearchParams();
+
+const category = searchParams.get("category") || "";
+const searchParam = searchParams.get("search") || "";
+const sort = searchParams.get("sort") || "";
+const page = Number(searchParams.get("page")) || 1;
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Performance" icon="bolt">
+    Use `useMemo` for filtering and sorting to prevent unnecessary recalculations
+  </Card>
+  <Card title="User Feedback" icon="bell">
+    Show toast notifications when products are added to cart
+  </Card>
+  <Card title="Empty States" icon="inbox">
+    Display helpful message when no products match search criteria
+  </Card>
+  <Card title="Accessibility" icon="universal-access">
+    Include aria-labels and proper alt text for all images
+  </Card>
+</CardGroup>
