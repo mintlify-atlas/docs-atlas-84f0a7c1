@@ -1,0 +1,116 @@
+{
+  "projectType": "saas",
+  "projectName": "Villa Buena E-Commerce",
+  "projectDescription": "A modern React-based e-commerce platform with shopping cart, checkout, and user account management",
+  "theme": "almond",
+  "primaryColor": "#f1d262",
+  "lightColor": "#7c6c34",
+  "darkColor": "#19160b",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/product-catalog",
+              "features/shopping-cart",
+              "features/checkout-flow",
+              "features/user-accounts",
+              "features/order-history"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/state-management",
+              "architecture/routing",
+              "architecture/api-integration"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/environment-variables",
+              "development/building",
+              "development/testing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Components",
+        "groups": [
+          {
+            "group": "UI Components",
+            "pages": [
+              "components/product-card",
+              "components/cart-drawer",
+              "components/filters",
+              "components/navbar",
+              "components/checkout-stepper",
+              "components/order-summary"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "hooks/use-products",
+              "hooks/use-categories",
+              "hooks/use-product",
+              "hooks/use-debounce"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Services",
+            "pages": [
+              "api/product-service",
+              "api/category-service"
+            ]
+          },
+          {
+            "group": "State Management",
+            "pages": [
+              "api/cart-store",
+              "api/user-store",
+              "api/ui-store"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Product catalog with filtering, search, and sorting",
+    "Shopping cart with persistent storage",
+    "Multi-step checkout process",
+    "Auth0 authentication integration",
+    "Order history tracking",
+    "Responsive design with Bootstrap"
+  ],
+  "publicApiSurface": [
+    "useCartStore (addToCart, removeFromCart, increaseQty, decreaseQty, clearCart)",
+    "useUserStore (setShipping, setPayment, addOrder, hydrateFromAuth0)",
+    "useProducts (fetch all products)",
+    "useProduct (fetch product by ID)",
+    "useCategories (fetch all categories)",
+    "productService (getAll, getById, getByCategory)",
+    "categoryService (getAll)"
+  ]
+}
