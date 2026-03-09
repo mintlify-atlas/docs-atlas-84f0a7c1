@@ -1,0 +1,150 @@
+---
+title: SkeletonCard
+description: Loading placeholder component for product cards
+icon: spinner
+---
+
+# SkeletonCard
+
+The `SkeletonCard` component displays a loading placeholder that mimics the structure of a product card. It's used to provide visual feedback while product data is being fetched.
+
+## Overview
+
+Located at `src/components/SkeletonCard.jsx`, this component uses Bootstrap's placeholder utilities to create an animated loading skeleton that matches the dimensions and layout of the actual ProductCard component.
+
+## Usage
+
+```jsx src/pages/Home.jsx:105-108
+{isLoading ? (
+  Array.from({ length: limit }).map((_, index) => (
+    <SkeletonCard key={index} />
+  ))
+) : (
+  // ... actual product cards
+)}
+```
+
+## Component Structure
+
+The SkeletonCard component has no props and renders a fixed layout:
+
+```jsx src/components/SkeletonCard.jsx
+const SkeletonCard = () => {
+  return (
+    <div className="col-md-4 col-lg-3 mb-4">
+      <div className="card h-100 shadow-sm p-3">
+        <div className="placeholder-glow" style={{ height: "200px" }}>
+          <span className="placeholder col-12 h-100"></span>
+        </div>
+
+        <div className="card-body">
+          <p className="card-title placeholder-glow">
+            <span className="placeholder col-8"></span>
+          </p>
+
+          <p className="placeholder-glow">
+            <span className="placeholder col-6"></span>
+          </p>
+
+          <div className="d-flex gap-2 mt-3">
+            <span className="placeholder col-5 btn btn-secondary disabled"></span>
+            <span className="placeholder col-5 btn btn-secondary disabled"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SkeletonCard;
+```
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Loading State" icon="spinner">
+    Provides immediate visual feedback during data fetching
+  </Card>
+  <Card title="Layout Matching" icon="grip">
+    Mirrors ProductCard dimensions for seamless transitions
+  </Card>
+  <Card title="Animation" icon="wand-magic-sparkles">
+    Uses Bootstrap's placeholder-glow for animated effect
+  </Card>
+  <Card title="Grid Compatible" icon="table-cells">
+    Works within the same responsive grid as ProductCard
+  </Card>
+</CardGroup>
+
+## Implementation Details
+
+### Placeholder Elements
+
+The component includes placeholders for:
+- **Image area**: 200px height placeholder for product thumbnail
+- **Title**: 8-column width placeholder
+- **Price**: 6-column width placeholder
+- **Buttons**: Two 5-column width button placeholders
+
+### Bootstrap Classes
+
+Key classes used:
+- `placeholder-glow` - Adds animated shimmer effect
+- `placeholder` - Creates the placeholder element
+- `col-{n}` - Controls placeholder width
+- `h-100` - Full height card
+
+### Grid Layout
+
+```jsx
+<div className="col-md-4 col-lg-3 mb-4">
+  {/* Same grid column classes as ProductCard */}
+</div>
+```
+
+This ensures the skeleton card takes up the same space as the actual product cards in the responsive grid.
+
+## Real-World Usage
+
+### Product Catalog Loading
+
+```jsx src/pages/Home.jsx:104-117
+<div className="row g-4">
+  {isLoading ? (
+    Array.from({ length: limit }).map((_, index) => (
+      <SkeletonCard key={index} />
+    ))
+  ) : paginatedProducts.length === 0 ? (
+    <div className="text-center py-5 w-100">
+      <p>No products found</p>
+    </div>
+  ) : (
+    paginatedProducts.map((product) => (
+      <ProductCard key={product.id} product={product} />
+    ))
+  )}
+</div>
+```
+
+<Note>
+  The `limit` variable (set to 12) controls how many skeleton cards are displayed during loading, matching the number of products shown per page.
+</Note>
+
+## Best Practices
+
+<Accordion title="Match Your Card Layout">
+  Ensure SkeletonCard dimensions and structure match your ProductCard for smooth transitions when data loads.
+</Accordion>
+
+<Accordion title="Use Appropriate Count">
+  Display the same number of skeleton cards as you would display actual products to maintain consistent visual density.
+</Accordion>
+
+<Accordion title="Unique Keys">
+  Always use unique keys when rendering multiple skeleton cards in a loop (e.g., array index).
+</Accordion>
+
+## Related Components
+
+- [ProductCard](/components/product-card) - The actual product card component that replaces the skeleton
+- [Filters](/components/filters) - Often triggers loading states that show skeleton cards

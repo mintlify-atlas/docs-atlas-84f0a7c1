@@ -1,0 +1,291 @@
+---
+title: Toast
+description: Global notification system for user feedback
+icon: bell
+---
+
+# Toast
+
+The `Toast` component displays temporary notification messages to users, providing feedback for actions like adding items to cart or completing orders.
+
+## Overview
+
+Located at `src/components/toast/Toast.jsx`, this component integrates with the `useUIStore` to display contextual notifications with automatic dismiss behavior and smooth animations.
+
+## Usage
+
+The Toast component is rendered once in the Layout and controlled through the UI store:
+
+```jsx src/app/Layout.jsx
+import Toast from "../components/toast/Toast";
+
+<Toast />
+```
+
+Trigger notifications from anywhere in the app:
+
+```jsx
+import { useUIStore } from "../store/uiStore";
+
+const showToast = useUIStore((state) => state.showToast);
+
+// Show a notification
+showToast("Product added to cart!");
+```
+
+## Component Structure
+
+```jsx src/components/toast/Toast.jsx
+const Toast = () => {
+  const toast = useUIStore((state) => state.toast);
+  const hideToast = useUIStore((state) => state.hideToast);
+
+  const [isExiting, setIsExiting] = useState(false);
+  const [prevToast, setPrevToast] = useState(null);
+
+  // Auto-hide after 2.5 seconds
+  useEffect(() => {
+    if (!toast) return;
+
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+    }, 2500);
+
+    const cleanupTimer = setTimeout(() => {
+      hideToast();
+    }, 2850);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(cleanupTimer);
+    };
+  }, [toast, hideToast]);
+
+  if (!toast) return null;
+
+  const message = typeof toast === "string" ? toast : "";
+  const isSuccess = message.toLowerCase().includes("added");
+  const isError = message.toLowerCase().includes("error") || message.includes("❌");
+
+  return (
+    <div
+      className={`custom-toast ${isSuccess ? "success" : ""} ${isError ? "error" : ""} ${isExiting ? "toast-exit" : ""}`}
+      role="alert"
+    >
+      <div className="d-flex align-items-center gap-2">
+        {isSuccess && <ShoppingCart size={20} strokeWidth={2.5} />}
+        {isError && <AlertCircle size={20} strokeWidth={2.5} />}
+        <span>{message}</span>
+      </div>
+    </div>
+  );
+};
+```
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Auto-Dismiss" icon="clock">
+    Automatically hides after 2.5 seconds
+  </Card>
+  <Card title="Contextual Icons" icon="icons">
+    Shows ShoppingCart or AlertCircle based on message type
+  </Card>
+  <Card title="Smooth Animations" icon="wand-magic-sparkles">
+    Entry and exit animations via CSS transitions
+  </Card>
+  <Card title="Type Detection" icon="magnifying-glass">
+    Automatically detects success/error based on message content
+  </Card>
+</CardGroup>
+
+## Message Types
+
+The toast automatically detects the type based on message content:
+
+### Success Messages
+
+Any message containing "added" (case-insensitive):
+
+```jsx
+showToast("Product added to cart!");  // Green success toast with cart icon
+```
+
+### Error Messages
+
+Any message containing "error" or "❌":
+
+```jsx
+showToast("Error loading products");  // Red error toast with alert icon
+showToast("❌ Failed to process order");  // Red error toast
+```
+
+### Default Messages
+
+All other messages display without special styling:
+
+```jsx
+showToast("Order placed successfully");  // Default toast
+```
+
+## Real-World Examples
+
+### Adding to Cart
+
+```jsx src/components/productCard/ProductCard.jsx
+import { useCartStore } from "../../store/useCartStore";
+import { useUIStore } from "../../store/uiStore";
+
+const addToCart = useCartStore((state) => state.addToCart);
+const showToast = useUIStore((state) => state.showToast);
+
+const handleAddToCart = (e) => {
+  e.stopPropagation();
+  addToCart(product);
+  showToast(`${product.title} added to cart`);
+};
+```
+
+### Order Confirmation
+
+```jsx src/pages/checkoutpayment/CheckoutPayment.jsx
+const showToast = useUIStore((state) => state.showToast);
+const clearCart = useCartStore((state) => state.clearCart);
+
+const handlePlaceOrder = (e) => {
+  e.preventDefault();
+  
+  const order = {
+    id: Date.now(),
+    items: cart,
+    shipping,
+    payment: { last4: payment.cardNumber.slice(-4) },
+    total,
+    date: new Date().toISOString(),
+  };
+
+  addOrder(order);
+  clearCart();
+  showToast("Order placed successfully! 🎉");
+  navigate("/payment/success");
+};
+```
+
+### Error Handling
+
+```jsx
+const { data, isError, error } = useProducts();
+
+if (isError) {
+  showToast(`❌ ${error.message}`);
+}
+```
+
+## Timing Configuration
+
+The toast uses a two-phase dismissal:
+
+1. **Display phase**: 2500ms (2.5 seconds)
+2. **Exit animation**: 350ms
+3. **Total duration**: 2850ms
+
+```jsx src/components/toast/Toast.jsx:21-27
+const timer = setTimeout(() => {
+  setIsExiting(true);  // Start exit animation
+}, 2500);
+
+const cleanupTimer = setTimeout(() => {
+  hideToast();  // Remove from DOM
+}, 2850);
+```
+
+<Note>
+  The exit animation starts 350ms before the toast is removed to ensure smooth visual transitions.
+</Note>
+
+## CSS Styling
+
+The component uses custom CSS classes defined in `Toast.css`:
+
+```css
+.custom-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+.custom-toast.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.custom-toast.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.toast-exit {
+  animation: slideOut 0.3s ease-in;
+}
+```
+
+## Store Integration
+
+The Toast component integrates with the UI store:
+
+```jsx src/store/uiStore.js:19-30
+toast: null,
+toastKey: 0,
+
+showToast: (message) => {
+  set((state) => ({
+    toast: message,
+    toastKey: state.toastKey + 1,
+  }));
+},
+
+hideToast: () => set({ toast: null }),
+```
+
+The `toastKey` increments with each new toast, ensuring the component re-renders and restarts animations even if the same message is shown twice.
+
+## Accessibility
+
+The component includes proper ARIA attributes:
+
+```jsx
+<div role="alert">
+  {/* Toast content */}
+</div>
+```
+
+The `role="alert"` attribute ensures screen readers announce the notification immediately.
+
+## Best Practices
+
+<Accordion title="Keep Messages Concise">
+  Toast messages should be brief (under 50 characters) to ensure they're read before auto-dismissing.
+</Accordion>
+
+<Accordion title="Use Consistent Language">
+  Use "added" for success messages and "error" for failures to ensure automatic type detection works correctly.
+</Accordion>
+
+<Accordion title="Don't Overuse">
+  Only show toasts for important user actions. Avoid showing toasts for every minor interaction.
+</Accordion>
+
+<Accordion title="Test Timing">
+  Ensure 2.5 seconds is enough time for users to read your longest messages. Adjust if needed.
+</Accordion>
+
+## Related Components
+
+- [UI Store](/api/ui-store) - Manages toast state and controls
+- [ProductCard](/components/product-card) - Uses toast for cart notifications
+- [Navbar](/components/navbar) - Container for Toast component via Layout
